@@ -7,6 +7,7 @@ from pathlib import Path
 import faiss
 from sentence_transformers import SentenceTransformer
 
+from ..config import load_env
 from ..utils.io import ensure_dir, read_text, write_json, write_jsonl
 from ..utils.logging import get_logger
 from .chunker import chunk_document
@@ -197,6 +198,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()
     args = parse_args(argv)
     build_index(
         input_dir=Path(args.input_dir),

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Iterable
 
+from ..config import get_env
+
 _INGREDIENTI_RE = re.compile(r"^ingredienti\\s*:?$", re.IGNORECASE)
 _TECNICHE_RE = re.compile(r"^tecniche\\s*:?$", re.IGNORECASE)
 _INGREDIENTI_INLINE_RE = re.compile(r"^ingredienti\\s*:?(.*)$", re.IGNORECASE)
@@ -20,6 +22,7 @@ _BAD_TITLES = {
     "chef",
     "ingredienti",
     "tecniche",
+    "licenze",
     "techniques",
     "ristorante",
 }
@@ -86,6 +89,26 @@ _NARRATIVE_HINTS = {
     "adagiato",
     "adagiata",
 }
+
+_TITLE_ANCHOR_STARTS = {
+    "benvenuti",
+    "scoprite",
+    "lasciati",
+    "prenotate",
+    "presentiamo",
+}
+
+_TITLE_JOIN_PREFIXES = (
+    "- ",
+    ": ",
+    "con ",
+    "alla ",
+    "al ",
+    "ai ",
+    "alle ",
+    "della ",
+    "del ",
+)
 
 _TECHNIQUE_PREFIXES = (
     "affettamento",
@@ -154,7 +177,31 @@ def _clean_line(line: str) -> str:
     return _MULTISPACE_RE.sub(" ", line).strip()
 
 
-def _is_bad_title(line: str) -> bool:
+def _env_flag(name: str, default: bool = True) -> bool:
+    raw = get_env(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _clean_dish_name(text: str) -> str:
+    cleaned = text.strip()
+    replacements = {
+        "â€œ": "\"",
+        "â€": "\"",
+        "â€ž": "\"",
+        "Â«": "\"",
+        "Â»": "\"",
+        "â€™": "'",
+        "â€˜": "'",
+        "â€š": "'",
+    }
+    for src, dst in replacements.items():
+        cleaned = cleaned.replace(src, dst)
+    return cleaned
+
+
+def _is_bad_title_baseline(line: str) -> bool:
     lowered = line.lower()
     if lowered in _BAD_TITLES:
         return True
@@ -164,6 +211,90 @@ def _is_bad_title(line: str) -> bool:
     return False
 
 
+def is_bad_title(title: str) -> bool:
+    stripped = title.strip()
+    if len(stripped) < 2 or len(stripped) > 140:
+        return True
+    if stripped.endswith((".", ":")):
+        return True
+    if stripped.count(",") >= 2:
+        return True
+    lowered = _normalize_term(stripped)
+    if lowered in _BAD_TITLES:
+        return True
+    if any(lowered.startswith(anchor) for anchor in _TITLE_ANCHOR_STARTS):
+        return True
+    return False
+
+
+def title_score(title: str) -> int:
+    length = len(title)
+    score = 0
+    if 25 <= length <= 120:
+        score += 3
+    elif 12 <= length < 25:
+        score += 1
+    if " - " in title:
+        score += 5
+    if ": " in title:
+        score += 4
+    commas = title.count(",")
+    if commas == 0:
+        score += 1
+    elif commas >= 2:
+        score -= 3
+    return score
+
+
+def choose_best_title(candidates: List[str], old_title: str | None = None) -> str | None:
+    valid: list[str] = []
+    for candidate in candidates:
+        cleaned = candidate.strip()
+        if not cleaned or is_bad_title(cleaned):
+            continue
+        valid.append(cleaned)
+    if not valid:
+        return None
+    scored = [(title_score(candidate), candidate) for candidate in valid]
+    scored.sort(key=lambda item: (item[0], len(item[1]), item[1]))
+    best_score, best_title = scored[-1]
+    if old_title is None:
+        return best_title
+    old_cleaned = old_title.strip()
+    if not old_cleaned:
+        return best_title
+    old_score = title_score(old_cleaned) if not is_bad_title(old_cleaned) else -999
+    if best_score >= old_score + 3:
+        return best_title
+    return old_title
+
+
+def _extract_quoted_titles(line: str) -> list[str]:
+    candidates: list[str] = []
+    for match in re.findall(r"[\"“”«»](.+?)[\"“”«»]", line):
+        candidate = match.strip()
+        if candidate:
+            candidates.append(candidate)
+    return candidates
+
+
+def maybe_join_title(line: str, next_line: str) -> str:
+    if not next_line:
+        return line
+    if len(next_line) > 110:
+        return line
+    if next_line.endswith("."):
+        return line
+    if next_line.count(",") >= 2:
+        return line
+    lowered = next_line.lower()
+    if not any(lowered.startswith(prefix) for prefix in _TITLE_JOIN_PREFIXES):
+        return line
+    if line.endswith("-"):
+        return f"{line[:-1].rstrip()}{next_line}".strip()
+    return f"{line} {next_line}".strip()
+
+
 def _is_title_candidate(line: str) -> bool:
     if len(line) < 2 or len(line) > 120:
         return False
@@ -171,7 +302,7 @@ def _is_title_candidate(line: str) -> bool:
         return False
     if "," in line:
         return False
-    if _is_bad_title(line):
+    if _is_bad_title_baseline(line):
         return False
     if _is_technique_line(line):
         return False
@@ -213,7 +344,7 @@ def _is_ingredient_line(line: str) -> bool:
     return first.isupper() or first.isdigit()
 
 
-def _pick_dish_name(buffer: List[str]) -> str:
+def _pick_dish_name_baseline(buffer: List[str]) -> str:
     for idx in range(len(buffer) - 1, -1, -1):
         line = buffer[idx]
         if not _is_title_candidate(line):
@@ -232,6 +363,21 @@ def _pick_dish_name(buffer: List[str]) -> str:
             break
         return " ".join(parts).strip()
     return ""
+
+
+def _pick_dish_name(buffer: List[str]) -> str:
+    old_title = _pick_dish_name_baseline(buffer)
+    if not _env_flag("PARSER_TITLE_SCORING", True):
+        return _clean_dish_name(old_title) if old_title else ""
+    candidates: list[str] = []
+    for line in buffer:
+        if _is_title_candidate(line):
+            candidates.append(line)
+        candidates.extend(_extract_quoted_titles(line))
+    best_title = choose_best_title(candidates, old_title=old_title)
+    if best_title is None:
+        best_title = old_title
+    return _clean_dish_name(best_title) if best_title else ""
 
 
 def _extract_restaurant_name(source_file: str) -> str | None:
@@ -286,6 +432,19 @@ def _parse_narrative(
             i += 1
             continue
         dish_name = line
+        if _env_flag("PARSER_JOIN_TITLE", True) and i + 1 < len(lines):
+            joined = maybe_join_title(line, lines[i + 1])
+            if joined != line:
+                dish_name = joined
+                i += 1
+        if _env_flag("PARSER_TITLE_SCORING", True):
+            candidates = [dish_name, line]
+            candidates.extend(_extract_quoted_titles(line))
+            candidates.extend(_extract_quoted_titles(dish_name))
+            selected = choose_best_title(candidates, old_title=line)
+            if selected:
+                dish_name = selected
+        dish_name = _clean_dish_name(dish_name)
         j = i + 1
         while j < len(lines) and not is_title(lines[j]) and lines[j].lower() not in {"ingredienti", "tecniche"}:
             j += 1
