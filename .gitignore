@@ -5,4 +5,5 @@ data/processed/index/
 data/processed/menu_dishes.jsonl
 data/processed/debug/
 data/processed/parser_metrics.jsonl
+data/processed/llm_cache.jsonl
 runs/

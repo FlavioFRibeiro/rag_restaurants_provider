@@ -157,6 +157,7 @@ def run_eval(
             llm_provider,
             top_k=top_k,
             use_llm=use_llm and llm_provider is not None,
+            question_id=qid,
         )
         truth = ground_truth.get(qid, "")
         f1, precision, recall = f1_overlap(prediction, truth)
