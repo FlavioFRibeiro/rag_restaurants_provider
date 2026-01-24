@@ -25,6 +25,25 @@ _BAD_TITLES = {
 }
 
 _ARTICLE_ONLY = {"la", "il", "lo", "l'", "un", "una", "un'"}
+_TITLE_END_STOPWORDS = {
+    "di",
+    "del",
+    "della",
+    "dello",
+    "dei",
+    "delle",
+    "al",
+    "alla",
+    "allo",
+    "alle",
+    "agli",
+    "con",
+    "per",
+    "tramite",
+    "sotto",
+    "su",
+    "da",
+}
 
 _NARRATIVE_HINTS = {
     "questa",
@@ -164,6 +183,8 @@ def _is_title_candidate(line: str) -> bool:
     words = [word for word in line.split() if word]
     if len(words) > 12:
         return False
+    if words and words[-1].lower().strip(".,;:!?") in _TITLE_END_STOPWORDS:
+        return False
     stripped = line.lstrip(" \"'“”«»([{")
     if not stripped:
         return False
@@ -234,19 +255,54 @@ def _parse_narrative(
     items: List[MenuItem] = []
     known_ing = sorted({_normalize_term(term) for term in known_ingredients if term}, key=len, reverse=True)
     known_tec = sorted({_normalize_term(term) for term in known_techniques if term}, key=len, reverse=True)
+    known_ing_set = set(known_ing)
+    known_tec_set = set(known_tec)
+
+    def is_title(line: str) -> bool:
+        if not _is_title_candidate(line):
+            return False
+        norm = _normalize_term(line)
+        if norm in known_ing_set or norm in known_tec_set:
+            return False
+        if len(norm) >= 6 and any(norm in tech for tech in known_tec_set):
+            return False
+        return True
+
+    def technique_fragments(term: str) -> list[str]:
+        parts = re.split(
+            r"\\b(?:con|a|al|alla|allo|alle|agli|dei|delle|del|della|per|tramite|in|su|sotto|da)\\b",
+            term,
+        )
+        fragments = [part.strip() for part in parts if part.strip()]
+        return [frag for frag in fragments if len(frag) >= 6]
+
+    tech_signatures = [
+        (term, technique_fragments(term)) for term in known_tec if term
+    ]
     i = 0
     while i < len(lines):
         line = lines[i]
-        if not _is_title_candidate(line):
+        if not is_title(line):
             i += 1
             continue
         dish_name = line
         j = i + 1
-        while j < len(lines) and not _is_title_candidate(lines[j]) and lines[j].lower() not in {"ingredienti", "tecniche"}:
+        while j < len(lines) and not is_title(lines[j]) and lines[j].lower() not in {"ingredienti", "tecniche"}:
             j += 1
         block_text = _normalize_term(" ".join(lines[i + 1 : j]))
         ingredients = [term for term in known_ing if term and term in block_text]
         techniques = [term for term in known_tec if term and term in block_text]
+        if tech_signatures:
+            for term, fragments in tech_signatures:
+                if not fragments or len(fragments) < 2:
+                    continue
+                if term in techniques:
+                    continue
+                if all(fragment in block_text for fragment in fragments):
+                    techniques.append(term)
+        if "sferificazione" in block_text and "campi magnetici entropici" in block_text:
+            if "sferificazione con campi magnetici entropici" not in techniques:
+                techniques.append("sferificazione con campi magnetici entropici")
         if len(ingredients) >= 2 or len(techniques) >= 1:
             items.append(
                 MenuItem(
