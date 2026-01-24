@@ -4,12 +4,13 @@ import argparse
 import csv
 from datetime import datetime
 from pathlib import Path
+import re
 
 from ..config import load_env
 from ..rag.llm import get_llm_provider
 from ..rag.pipeline import answer_question
 from ..rag.retriever import Retriever
-from ..utils.io import ensure_dir, write_json
+from ..utils.io import ensure_dir, write_json, read_json
 from ..utils.logging import get_logger
 from .metrics import f1_overlap
 
@@ -59,7 +60,7 @@ def load_ground_truth(path: Path) -> dict[str, str]:
 
     fieldnames = rows[0].keys()
     gt_key = None
-    for key in ["ground_truth", "answer", "expected", "gold"]:
+    for key in ["ground_truth", "answer", "expected", "gold", "result"]:
         if key in fieldnames:
             gt_key = key
             break
@@ -76,7 +77,50 @@ def load_ground_truth(path: Path) -> dict[str, str]:
     for idx, row in enumerate(rows):
         qid = row.get(id_key) if id_key else str(idx)
         mapping[str(qid)] = (row.get(gt_key) or "").strip()
-    return mapping
+    return _maybe_map_ground_truth(mapping, path.parent)
+
+
+def _maybe_map_ground_truth(mapping: dict[str, str], ground_truth_dir: Path) -> dict[str, str]:
+    if not mapping:
+        return mapping
+    numeric_re = re.compile(r"^[0-9,;|\\s]+$")
+    if not all(numeric_re.match(value or "") for value in mapping.values()):
+        return mapping
+
+    mapping_path = ground_truth_dir / "dish_mapping.json"
+    if not mapping_path.exists():
+        return mapping
+
+    dish_map = _load_dish_mapping(mapping_path)
+    if not dish_map:
+        return mapping
+
+    converted: dict[str, str] = {}
+    for qid, value in mapping.items():
+        converted[qid] = _map_numeric_results(value, dish_map)
+    return converted
+
+
+def _load_dish_mapping(path: Path) -> dict[int, str]:
+    data = read_json(path)
+    reverse: dict[int, str] = {}
+    for dish_name, dish_id in data.items():
+        try:
+            reverse[int(dish_id)] = dish_name
+        except Exception:
+            continue
+    return reverse
+
+
+def _map_numeric_results(value: str, dish_map: dict[int, str]) -> str:
+    parts = [part.strip() for part in re.split(r"[;,|]+", value or "") if part.strip()]
+    names: list[str] = []
+    for part in parts:
+        if part.isdigit():
+            name = dish_map.get(int(part))
+            if name:
+                names.append(name)
+    return "\n".join(names)
 
 
 def run_eval(
@@ -86,6 +130,7 @@ def run_eval(
     out_dir: Path,
     top_k: int = 6,
     no_llm: bool = False,
+    use_llm: bool = False,
 ) -> None:
     load_env()
     ensure_dir(out_dir)
@@ -106,7 +151,13 @@ def run_eval(
     for item in questions:
         qid = item["question_id"]
         question = item["question"]
-        prediction = answer_question(question, retriever, llm_provider, top_k=top_k)
+        prediction = answer_question(
+            question,
+            retriever,
+            llm_provider,
+            top_k=top_k,
+            use_llm=use_llm and llm_provider is not None,
+        )
         truth = ground_truth.get(qid, "")
         f1, precision, recall = f1_overlap(prediction, truth)
 
@@ -164,6 +215,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--out-dir", default="", help="Output directory for run artifacts.")
     parser.add_argument("--top-k", type=int, default=6)
     parser.add_argument("--no-llm", action="store_true")
+    parser.add_argument("--use-llm", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -182,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         out_dir=out_dir,
         top_k=args.top_k,
         no_llm=args.no_llm,
+        use_llm=args.use_llm,
     )
     return 0
 

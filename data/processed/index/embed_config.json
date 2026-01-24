@@ -5,6 +5,7 @@
   "embedding_dim": 384,
   "chunk_size": 800,
   "chunk_overlap": 120,
-  "num_chunks": 850,
-  "created_at": "2026-01-23T22:25:57.917010Z"
+  "num_chunks": 301,
+  "num_menu_dishes": 194,
+  "created_at": "2026-01-24T00:11:35.241605Z"
 }

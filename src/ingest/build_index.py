@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 from ..utils.io import ensure_dir, read_text, write_json, write_jsonl
 from ..utils.logging import get_logger
 from .chunker import chunk_document
+from .menu_parser import parse_menu_items
 from .pdf_loader import load_pdf_text
 
 logger = get_logger(__name__)
@@ -19,6 +20,8 @@ def detect_doc_type(path: Path) -> str:
     name = path.stem.lower()
     ext = path.suffix.lower()
     if "menu" in name or "cardapio" in name:
+        return "menu"
+    if any(part.lower() == "menu" for part in path.parts):
         return "menu"
     if "manual" in name or "guide" in name or "handbook" in name:
         return "manual"
@@ -53,6 +56,7 @@ def build_index(
 
     documents: list[dict] = []
     texts: list[str] = []
+    menu_dishes: list[dict] = []
 
     for file_path in files:
         raw_text = load_text_from_file(file_path)
@@ -65,6 +69,45 @@ def build_index(
             source_rel = file_path.relative_to(input_dir).as_posix()
         except Exception:
             source_rel = str(file_path)
+
+        if doc_type == "menu":
+            dishes = parse_menu_items(raw_text, source_rel)
+            if not dishes:
+                logger.info("No dishes parsed from menu: %s", file_path)
+                continue
+
+            for dish in dishes:
+                dish_name = dish.dish_name.strip()
+                ingredients = [item.strip() for item in dish.ingredients if item.strip()]
+                techniques = [item.strip() for item in dish.techniques if item.strip()]
+                if not dish_name or not ingredients:
+                    continue
+                text = (
+                    f"DISH: {dish_name}\n"
+                    f"INGREDIENTS: {', '.join(ingredients)}\n"
+                    f"TECHNIQUES: {', '.join(techniques)}"
+                )
+                metadata = {
+                    "dish_name": dish_name,
+                    "source_file": source_rel,
+                    "doc_type": dish.doc_type,
+                    "ingredients": ingredients,
+                    "techniques": techniques,
+                    "restaurant_name": dish.restaurant_name,
+                }
+                documents.append({"text": text, "metadata": metadata})
+                texts.append(text)
+                menu_dishes.append(
+                    {
+                        "dish_name": dish_name,
+                        "ingredients": ingredients,
+                        "techniques": techniques,
+                        "source_file": source_rel,
+                        "doc_type": dish.doc_type,
+                        "restaurant_name": dish.restaurant_name,
+                    }
+                )
+            continue
 
         chunks = chunk_document(raw_text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         for chunk in chunks:
@@ -104,9 +147,12 @@ def build_index(
         "chunk_size": int(chunk_size),
         "chunk_overlap": int(chunk_overlap),
         "num_chunks": len(documents),
+        "num_menu_dishes": len(menu_dishes),
         "created_at": datetime.utcnow().isoformat() + "Z",
     }
     write_json(out_dir / "embed_config.json", embed_config)
+    menu_out = out_dir.parent / "menu_dishes.jsonl"
+    write_jsonl(menu_out, menu_dishes)
 
     logger.info("Index saved to %s", out_dir)
 
