@@ -1,58 +1,58 @@
 {
-  "score_total": 8.86771449973173,
+  "score_total": 16.52116459093171,
   "score_per_question": [
     {
       "question_id": "0",
-      "f1": 0.16666666666666669,
-      "precision": 0.09090909090909091,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "1",
-      "f1": 0.5,
-      "precision": 0.3333333333333333,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "2",
-      "f1": 0.0689655172413793,
-      "precision": 0.03571428571428571,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "3",
-      "f1": 0.6666666666666666,
-      "precision": 0.5,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "4",
-      "f1": 0.4,
-      "precision": 0.25,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "5",
-      "f1": 0.25,
-      "precision": 0.14285714285714285,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "6",
-      "f1": 0.1212121212121212,
-      "precision": 0.06666666666666667,
+      "f1": 0.8,
+      "precision": 1.0,
       "recall": 0.6666666666666666
     },
     {
       "question_id": "7",
-      "f1": 0.2222222222222222,
-      "precision": 0.13333333333333333,
-      "recall": 0.6666666666666666
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "8",
-      "f1": 0.07692307692307693,
-      "precision": 0.041666666666666664,
+      "f1": 0.6666666666666666,
+      "precision": 1.0,
       "recall": 0.5
     },
     {
@@ -63,51 +63,51 @@
     },
     {
       "question_id": "10",
-      "f1": 0.06666666666666667,
-      "precision": 0.034482758620689655,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "11",
-      "f1": 0.06666666666666667,
-      "precision": 0.03571428571428571,
+      "f1": 0.6666666666666666,
+      "precision": 1.0,
       "recall": 0.5
     },
     {
       "question_id": "12",
-      "f1": 0.07142857142857144,
-      "precision": 0.038461538461538464,
+      "f1": 0.6666666666666666,
+      "precision": 1.0,
       "recall": 0.5
     },
     {
       "question_id": "13",
-      "f1": 0.08,
-      "precision": 0.045454545454545456,
+      "f1": 0.5,
+      "precision": 1.0,
       "recall": 0.3333333333333333
     },
     {
       "question_id": "14",
-      "f1": 0.05405405405405406,
-      "precision": 0.037037037037037035,
-      "recall": 0.1
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "15",
-      "f1": 0.2,
-      "precision": 0.15,
-      "recall": 0.3
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "16",
-      "f1": 0.2777777777777778,
-      "precision": 0.17857142857142858,
-      "recall": 0.625
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "17",
-      "f1": 0.11764705882352941,
-      "precision": 0.06666666666666667,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "18",
@@ -117,15 +117,15 @@
     },
     {
       "question_id": "19",
-      "f1": 0.0625,
-      "precision": 0.03333333333333333,
+      "f1": 0.5,
+      "precision": 0.5,
       "recall": 0.5
     },
     {
       "question_id": "20",
-      "f1": 0.0,
-      "precision": 0.0,
-      "recall": 0.0
+      "f1": 0.6666666666666666,
+      "precision": 1.0,
+      "recall": 0.5
     },
     {
       "question_id": "21",
@@ -135,15 +135,15 @@
     },
     {
       "question_id": "22",
-      "f1": 0.07407407407407407,
-      "precision": 0.038461538461538464,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "23",
-      "f1": 0.07142857142857142,
-      "precision": 0.037037037037037035,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "24",
@@ -153,21 +153,21 @@
     },
     {
       "question_id": "25",
-      "f1": 0.0625,
-      "precision": 0.03333333333333333,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "26",
-      "f1": 0.1818181818181818,
-      "precision": 0.1111111111111111,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "27",
-      "f1": 0.17647058823529413,
-      "precision": 0.1111111111111111,
-      "recall": 0.42857142857142855
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "28",
@@ -177,21 +177,21 @@
     },
     {
       "question_id": "29",
-      "f1": 0.25,
-      "precision": 0.15384615384615385,
-      "recall": 0.6666666666666666
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "30",
-      "f1": 0.0625,
-      "precision": 0.03333333333333333,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "31",
-      "f1": 0.1176470588235294,
-      "precision": 0.06896551724137931,
-      "recall": 0.4
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "32",
@@ -207,21 +207,21 @@
     },
     {
       "question_id": "34",
-      "f1": 0.16666666666666669,
-      "precision": 0.09090909090909091,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "35",
-      "f1": 0.13793103448275862,
-      "precision": 0.07692307692307693,
-      "recall": 0.6666666666666666
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "36",
-      "f1": 0.07407407407407407,
-      "precision": 0.038461538461538464,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "37",
@@ -231,9 +231,9 @@
     },
     {
       "question_id": "38",
-      "f1": 0.20512820512820515,
-      "precision": 0.13793103448275862,
-      "recall": 0.4
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "39",
@@ -243,21 +243,21 @@
     },
     {
       "question_id": "40",
-      "f1": 0.06666666666666667,
-      "precision": 0.03571428571428571,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "41",
-      "f1": 0.06896551724137931,
-      "precision": 0.037037037037037035,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "42",
-      "f1": 0.10810810810810811,
-      "precision": 0.06666666666666667,
-      "recall": 0.2857142857142857
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "43",
@@ -267,14 +267,14 @@
     },
     {
       "question_id": "44",
-      "f1": 0.06666666666666667,
-      "precision": 0.034482758620689655,
+      "f1": 1.0,
+      "precision": 1.0,
       "recall": 1.0
     },
     {
       "question_id": "45",
-      "f1": 0.06451612903225806,
-      "precision": 0.03333333333333333,
+      "f1": 0.6666666666666666,
+      "precision": 0.5,
       "recall": 1.0
     },
     {
@@ -291,15 +291,15 @@
     },
     {
       "question_id": "48",
-      "f1": 0.14285714285714288,
-      "precision": 0.07692307692307693,
+      "f1": 0.23529411764705882,
+      "precision": 0.13333333333333333,
       "recall": 1.0
     },
     {
       "question_id": "49",
-      "f1": 0.0,
-      "precision": 0.0,
-      "recall": 0.0
+      "f1": 0.10526315789473682,
+      "precision": 0.07142857142857142,
+      "recall": 0.2
     },
     {
       "question_id": "50",
@@ -321,8 +321,8 @@
     },
     {
       "question_id": "53",
-      "f1": 0.08,
-      "precision": 0.043478260869565216,
+      "f1": 0.2,
+      "precision": 0.125,
       "recall": 0.5
     },
     {
@@ -333,39 +333,39 @@
     },
     {
       "question_id": "55",
-      "f1": 0.08333333333333334,
-      "precision": 0.045454545454545456,
+      "f1": 0.09999999999999999,
+      "precision": 0.05555555555555555,
       "recall": 0.5
     },
     {
       "question_id": "56",
-      "f1": 0.07142857142857142,
-      "precision": 0.04,
+      "f1": 0.08695652173913045,
+      "precision": 0.05,
       "recall": 0.3333333333333333
     },
     {
       "question_id": "57",
-      "f1": 0.1904761904761905,
-      "precision": 0.10526315789473684,
+      "f1": 0.25,
+      "precision": 0.14285714285714285,
       "recall": 1.0
     },
     {
       "question_id": "58",
-      "f1": 0.16666666666666666,
-      "precision": 0.10526315789473684,
+      "f1": 0.3333333333333333,
+      "precision": 0.2857142857142857,
       "recall": 0.4
     },
     {
       "question_id": "59",
-      "f1": 0.07142857142857142,
-      "precision": 0.037037037037037035,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "60",
-      "f1": 0.06451612903225806,
-      "precision": 0.03571428571428571,
-      "recall": 0.3333333333333333
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "61",
@@ -381,9 +381,9 @@
     },
     {
       "question_id": "63",
-      "f1": 0.125,
-      "precision": 0.06666666666666667,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "64",
@@ -393,80 +393,80 @@
     },
     {
       "question_id": "65",
-      "f1": 0.06451612903225806,
-      "precision": 0.04,
-      "recall": 0.16666666666666666
-    },
-    {
-      "question_id": "66",
-      "f1": 0.11428571428571428,
-      "precision": 0.08,
-      "recall": 0.2
-    },
-    {
-      "question_id": "67",
-      "f1": 0.1904761904761905,
-      "precision": 0.1111111111111111,
-      "recall": 0.6666666666666666
-    },
-    {
-      "question_id": "68",
-      "f1": 0.060606060606060615,
-      "precision": 0.038461538461538464,
-      "recall": 0.14285714285714285
-    },
-    {
-      "question_id": "69",
       "f1": 0.0,
       "precision": 0.0,
       "recall": 0.0
     },
     {
+      "question_id": "66",
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "question_id": "67",
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "question_id": "68",
+      "f1": 0.22222222222222224,
+      "precision": 0.5,
+      "recall": 0.14285714285714285
+    },
+    {
+      "question_id": "69",
+      "f1": 0.2,
+      "precision": 0.25,
+      "recall": 0.16666666666666666
+    },
+    {
       "question_id": "70",
-      "f1": 0.2666666666666667,
-      "precision": 0.15384615384615385,
-      "recall": 1.0
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "71",
-      "f1": 0.06896551724137931,
-      "precision": 0.043478260869565216,
+      "f1": 0.14285714285714288,
+      "precision": 0.125,
       "recall": 0.16666666666666666
     },
     {
       "question_id": "72",
-      "f1": 0.12121212121212122,
-      "precision": 0.07407407407407407,
-      "recall": 0.3333333333333333
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "73",
-      "f1": 0.16216216216216217,
-      "precision": 0.1,
-      "recall": 0.42857142857142855
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "74",
-      "f1": 0.2,
-      "precision": 0.13333333333333333,
-      "recall": 0.4
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "75",
-      "f1": 0.06666666666666667,
-      "precision": 0.03571428571428571,
-      "recall": 0.5
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "76",
-      "f1": 0.21052631578947367,
-      "precision": 0.13793103448275862,
-      "recall": 0.4444444444444444
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "77",
-      "f1": 0.1818181818181818,
-      "precision": 0.1111111111111111,
+      "f1": 0.22222222222222224,
+      "precision": 0.14285714285714285,
       "recall": 0.5
     },
     {
@@ -477,9 +477,9 @@
     },
     {
       "question_id": "79",
-      "f1": 0.08333333333333333,
-      "precision": 0.05263157894736842,
-      "recall": 0.2
+      "f1": 0.42857142857142855,
+      "precision": 0.3333333333333333,
+      "recall": 0.6
     },
     {
       "question_id": "80",
@@ -489,21 +489,21 @@
     },
     {
       "question_id": "81",
-      "f1": 0.07692307692307693,
-      "precision": 0.04,
+      "f1": 0.1111111111111111,
+      "precision": 0.058823529411764705,
       "recall": 1.0
     },
     {
       "question_id": "82",
-      "f1": 0.058823529411764705,
-      "precision": 0.037037037037037035,
-      "recall": 0.14285714285714285
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "83",
-      "f1": 0.05555555555555555,
-      "precision": 0.03333333333333333,
-      "recall": 0.16666666666666666
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "84",
@@ -513,9 +513,9 @@
     },
     {
       "question_id": "85",
-      "f1": 0.058823529411764705,
-      "precision": 0.041666666666666664,
-      "recall": 0.1
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     },
     {
       "question_id": "86",
@@ -579,14 +579,14 @@
     },
     {
       "question_id": "96",
-      "f1": 0.12903225806451613,
-      "precision": 0.07692307692307693,
+      "f1": 0.5,
+      "precision": 0.6666666666666666,
       "recall": 0.4
     },
     {
       "question_id": "97",
-      "f1": 0.09523809523809522,
-      "precision": 0.06666666666666667,
+      "f1": 0.25,
+      "precision": 0.5,
       "recall": 0.16666666666666666
     },
     {
@@ -597,45 +597,45 @@
     },
     {
       "question_id": "99",
-      "f1": 0.18181818181818182,
-      "precision": 0.10526315789473684,
-      "recall": 0.6666666666666666
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0
     }
   ],
   "errors_top_examples": [
     {
+      "question_id": "4",
+      "question": "Quali sono i piatti che includono i Sashimi di Magikarp?",
+      "prediction": "NOT_FOUND",
+      "ground_truth": "Il Rapsodo Celestiale",
+      "f1": 0.0
+    },
+    {
+      "question_id": "7",
+      "question": "Quali piatti sono preparati utilizzando la tecnica della Sferificazione a Gravità Psionica Variabile?",
+      "prediction": "NOT_FOUND",
+      "ground_truth": "Cosmic Serenade\nNebulosa Galattica\nCosmic Synchrony: Il Destino di Pulsar\nAurora del Cosmo\nFusione Celeste\nSinfonia Cosmica di Andromeda",
+      "f1": 0.0
+    },
+    {
       "question_id": "9",
       "question": "Quali piatti eterei sono preparati usando sia la Cottura Olografica Quantum Fluttuante che la Decostruzione Interdimensionale Lovecraftiana?",
-      "prediction": "La Mucca Che Stordisce\nLa Creazione di Nova\nLa Balena Sputafuoco\nPane degli Abissi\nIl Crepuscolo dell’Unicorno\nEssenze dell'Infinito\nCottura Sottovuoto Frugale Energeticamente Negativa\nSinfonia Quantica dell’Oceano Interstellare\nGalassia Ardente\nL'Unicorno piange il Kraken\nPortale di Sapori Arcani\nSinfonia del Cosmo e della Leggenda\nGalassie in Epifania: Risotto Celestiale con Preziosi dell'Universo\nGalassie Riflesse: Sinfonia del Multiverso\nSinfonia Cosmica: la Vendetta Fantasma\nPizza Gio\nArmonizzata garantiscono che la purezza originale degli\nSinfonia Astrale\nGalassia in Tavola: Sinfonia dei Sensi\nSinfonia di Multiverso: La Danza degli Elementi\nSinfonia del Cosmo Prezzo: 800 Tachioni Plutonici",
+      "prediction": "La Mucca Che Stordisce",
       "ground_truth": "Risotto dei Multiversi\nLa Mucca Che Stordisce l'Universo\nSogni di Abisso Cosmico",
       "f1": 0.0
     },
     {
-      "question_id": "18",
-      "question": "Quali piatti leggendari dell'universo utilizzano Foglie di Nebulosa, Amido di Stellarion e Uova di Fenice nella loro preparazione?",
-      "prediction": "Sinfonia Cosmica di Luminiscenze e Contrasti\nRinascita Cosmica\nNebulose della Fenice su Vento Lunare\nGalassia di Sapori Sublimi\nNebulosa di Fenice con Sinfonia Eterea\nCottura Sottovuoto Pulsar Magnetica\nNebulosa Celestiale di Sogni Quantici\nSinfonia Quantistica dell'Universo\nNebulosa di Sapori dell'Infinito\nGalassia Ardente\nNebulosa Eterna\nGalassia di Cosmo-Delizie\nSinfonia Astrale\nFenice sull'Orizzonte degli Eventi\nCosmofantasia di Terra e Mare nel Vortice delle Stelle\nOdissea Cosmica di Nettuno\nPizza Cosmica all'Essenza di Drago con Nebbia Arcobaleno e Funghi Orbitali\nSinfonia di Crepuscolo Celestiale\nGalassia di Sapore\nSinfonia Temporale di Fenice e Xenodonte su Pane degli Abissi\nEcosistema Celeste\nInterstellare Risveglio di Kraken\nSinfonia dell'Infinito: Un Viaggio Gnodale tra Terra e Universi\nIl Crepuscolo dell’Unicorno\nRisveglio Cosmico: Una Sinfonia di Sapori Universali\nIl Viaggio delle Dimensioni Confluenti\nViaggio Galattico: Sinfonia dei Sensi\nTris di Verdure con Xenodonte",
-      "ground_truth": "Galassia Aurorale",
+      "question_id": "14",
+      "question": "Quali piatti prepari utilizzando esclusivamente la Sferificazione Filamentare a Molecole Vibrazionali e evitando completamente l'Amalgamazione Sintetica Molecolare?",
+      "prediction": "NOT_FOUND",
+      "ground_truth": "Pizza Gio\nSerenata del Multiverso\nEclissi Quantica: Viaggio nei Reami del Gusto\nViaggio Cosmico nel Multiverso\nTris di Carne con Pane\nSinfonia degli Elementi Eterni\nPanetto di Carne\nCosmic Harmony Infusion\nNebulare Asteroideo con Crepuscolo di Mucca\nEclissi Armonica di Sapori",
       "f1": 0.0
     },
     {
-      "question_id": "20",
-      "question": "Quali piatti nel nostro universo galattico includono Erba Pipa, Funghi Orbitali e sono preparati con la Bollitura Infrasonica Armonizzata?",
-      "prediction": "Congelazione Iperdimensionalmente Stratificata Cottura a Vapore con Flusso di Particelle Isoarmoniche Affumicatura Temporale Risonante Portale Cosmico del Kraken\nSinfonia Galattica alla Griglia Cangiante\nSinfonia Temporale delle Profondità Infrasoniche\nSinfonia del Cosmo e della Leggenda\nPorta Celestiale alle Stelle\nLa Colonia di Mycoflora viene magistralmente cottastra attraverso la Idro-Cristallizzazione Sonora\nIl Banchetto delle Galassie\nNebulosa Galattica\nOdissea Cosmica di Nettuno\nL'Ascensione Siderale\nPortale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza\nPane degli Abissi\nSinfonia Temporale di Fenice e Xenodonte su Pane degli Abissi\nCottura Sottovuoto Frugale Energeticamente Negativa\nPioggia di Andromeda\nPizza Cosmica all'Essenza di Drago con Nebbia Arcobaleno e Funghi Orbitali\nInterstellare Risveglio di Kraken\nGalassia di Sapore\nGalassia Suprema\nViaggio Galattico: Sinfonia dei Sensi\nCosmopastico di Meraviglie Celesti\nTemporale III). Gli\nArmonizzata garantiscono che la purezza originale degli\nRisveglio Cosmico: Un Viaggio nel Sapore Quantistico\nGalassia di Sapore Interstellare\nIl Viaggio Celeste\nNebulare Asteroideo con Crepuscolo di Mucca\nRisotto dei Multiversi",
-      "ground_truth": "Sinfonia Tempolare Galattica\nPortale Cosmico del Kraken",
-      "f1": 0.0
-    },
-    {
-      "question_id": "21",
-      "question": "Quali piatti del vostro pianeta utilizzano la Cottura a Vapore con Flusso di Particelle Isoarmoniche, combinando Riso di Cassandra e Foglie di Nebulosa?",
-      "prediction": "Nebulosa Galattica\nSinfonia di Cristalli e Rigenerazione\nSinfonia Cosmica: Versione Pizza\nViaggio Galattico: Sinfonia dei Sensi\nIl Risveglio del Multiverso\nL'Estasi Cosmica di Nova\nViaggio Celeste nel Multiverso\nSinfonia di Gusti del Multiverso\nSinfonia Galattica\nPortale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza\nEtereo Crepuscolare\nSinfonia Cosmica alla Szechuan\nOdissea Celestiale\nRisveglio Cosmico: Un Viaggio nel Sapore Quantistico\nSinfonia Quantistica dell'Universo\nCongelazione Iperdimensionalmente Stratificata Cottura a Vapore con Flusso di Particelle Isoarmoniche Affumicatura Temporale Risonante Portale Cosmico del Kraken\nGalassia in Tavola: Sinfonia dei Sensi\nFusione Celeste\nSinfonia Cosmica di Andromeda\nGalassia Sensoriale\nLa Creazione di Nova\nGalassie Riflesse: Sinfonia del Multiverso\nRisveglio Cosmico: Una Sinfonia di Sapori Universali\nGalassia Incantata: Un Viaggio Attraverso l'Infinito\nSinfonia Cosmica di Luminiscenze e Contrasti\nGalassia Risvegliata\nGalassie Infiammate: Sinfonia Cosmica in Sei Dimensioni\nGalassie in Epifania: Risotto Celestiale con Preziosi dell'Universo\nPane e Carne Rivisitato\nAlternate Realities Risotto",
-      "ground_truth": "Galassia di Sapori Eterei",
-      "f1": 0.0
-    },
-    {
-      "question_id": "24",
-      "question": "Quali piatti utilizzano sia la Cottura a Vapore Risonante Simbiotico che la doppia Fermentazione Quantico Biometrica nella loro preparazione?",
-      "prediction": "Sinfonia del Multiverso\nCottura Sottovuoto Pulsar Magnetica\nUna Mucca e una Balena nella Singolarità\nEssenze dell'Infinito\nIl Viaggio Celeste\nPioggia di Dimensioni Galattiche\nRisotto dei Multiversi\nBistecca Cacofonica dell'Infinito\nIl Rapsodo Celestiale\nDimensioni del Mare Stellato\nNebulose della Fenice su Vento Lunare\nSinfonia di Crepuscolo Celestiale\nLuce e Ombra di Nomea Spaziale\nGalassia Incantata: Un Viaggio Attraverso l'Infinito\nCrescendo Cosmico\nGalassia in Tavola: Sinfonia dei Sensi\nTris di Verdure con Xenodonte\nCottura Sottovuoto Frugale Energeticamente Negativa\nGalassia di Sapori: Il Viaggio Senza Tempo\nPizza Gio\nPane degli Abissi\nSinfonia Astrale\nNduja Fritta Tanto\nL'Eco dei Sapori\nLa Creazione di Nova\nLa Mucca Che Stordisce",
-      "ground_truth": "Galassia di Sogni Cosmogastronomici",
+      "question_id": "15",
+      "question": "Quali piatti usano la Sferificazione Filamentare a Molecole Vibrazionali, ma evitano la Decostruzione Magnetica Risonante?",
+      "prediction": "NOT_FOUND",
+      "ground_truth": "Pizza Gio\nSerenata del Multiverso\nEclissi Quantica: Viaggio nei Reami del Gusto\nViaggio Cosmico nel Multiverso\nSinfonia degli Elementi Eterni\nPanetto di Carne\nCosmic Harmony Infusion\nSinfonia Cosmica di Terracotta\nNebulare Asteroideo con Crepuscolo di Mucca\nEclissi Armonica di Sapori",
       "f1": 0.0
     }
   ],

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Optional
 
+import re
+
 from ..utils.logging import get_logger
 from ..utils.io import read_jsonl
 from .llm import LLMProvider
 from .prompts import build_prompt
 from .bm25_retriever import BM25DishRetriever, MenuItem
-from .easy_query_parser import extract_keywords
 from .retriever import RetrievedChunk, Retriever
 
 logger = get_logger(__name__)
@@ -35,6 +36,10 @@ def _normalize_match(text: str) -> str:
     return " ".join(text.lower().split())
 
 
+def _tokenize(text: str) -> list[str]:
+    return re.findall(r"[\\w\\+]+", text.lower())
+
+
 def _load_menu_dishes(retriever: Retriever) -> list[MenuItem]:
     if hasattr(retriever, "_menu_dishes_cache"):
         return retriever._menu_dishes_cache  # type: ignore[attr-defined]
@@ -56,6 +61,56 @@ def _load_menu_dishes(retriever: Retriever) -> list[MenuItem]:
     return dishes
 
 
+def _build_term_index(dishes: list[MenuItem]) -> dict[str, list[str]]:
+    ingredients: set[str] = set()
+    techniques: set[str] = set()
+    for dish in dishes:
+        for item in dish.ingredients:
+            norm = _normalize_match(item)
+            if norm and len(norm) >= 4:
+                ingredients.add(norm)
+        for item in dish.techniques:
+            norm = _normalize_match(item)
+            if norm and len(norm) >= 4:
+                techniques.add(norm)
+    return {
+        "ingredients": sorted(ingredients, key=len, reverse=True),
+        "techniques": sorted(techniques, key=len, reverse=True),
+    }
+
+
+def _collect_terms(question: str, known_terms: list[str]) -> list[str]:
+    normalized = _normalize_match(question)
+    matches = [term for term in known_terms if term and term in normalized]
+    filtered: list[str] = []
+    for term in matches:
+        if any(term != other and term in other for other in matches):
+            continue
+        filtered.append(term)
+    return filtered
+
+
+def _extract_terms(question: str, term_index: dict[str, list[str]]) -> tuple[list[str], list[str]]:
+    ingredients = _collect_terms(question, term_index.get("ingredients", []))
+    techniques = _collect_terms(question, term_index.get("techniques", []))
+    technique_set = set(techniques)
+    ingredients = [term for term in ingredients if term not in technique_set]
+    return ingredients, techniques
+
+
+def _extract_negatives(question: str, terms: list[str]) -> list[str]:
+    normalized = _normalize_match(question)
+    negations = {"senza", "escludendo", "evitando", "non"}
+    negatives: list[str] = []
+    for term in terms:
+        if not term:
+            continue
+        pattern = re.compile(r"(senza|evitando|escludendo|non[^\\n]{0,40})\\s+" + re.escape(term))
+        if pattern.search(normalized):
+            negatives.append(term)
+    return negatives
+
+
 def _get_bm25(retriever: Retriever, dishes: list[MenuItem]) -> BM25DishRetriever | None:
     if hasattr(retriever, "_bm25_cache"):
         return retriever._bm25_cache  # type: ignore[attr-defined]
@@ -64,38 +119,58 @@ def _get_bm25(retriever: Retriever, dishes: list[MenuItem]) -> BM25DishRetriever
     return bm25
 
 
-def _match_dish(dish: MenuItem, keywords: list[str]) -> bool:
-    if not keywords:
-        return False
+def _match_dish(
+    dish: MenuItem,
+    required_ingredients: list[str],
+    required_techniques: list[str],
+    forbidden_ingredients: list[str],
+    forbidden_techniques: list[str],
+) -> bool:
     ingredient_texts = [_normalize_match(item) for item in dish.ingredients]
     technique_texts = [_normalize_match(item) for item in dish.techniques]
-    for keyword in keywords:
-        keyword_norm = _normalize_match(keyword)
-        if not keyword_norm:
-            continue
-        if any(keyword_norm in text for text in ingredient_texts):
-            return True
-        if any(keyword_norm in text for text in technique_texts):
-            return True
-    return False
+
+    for term in forbidden_ingredients:
+        if any(term in text for text in ingredient_texts):
+            return False
+    for term in forbidden_techniques:
+        if any(term in text for text in technique_texts):
+            return False
+
+    for term in required_ingredients:
+        if not any(term in text for text in ingredient_texts):
+            return False
+    for term in required_techniques:
+        if not any(term in text for text in technique_texts):
+            return False
+    return True
 
 
 def answer_easy(question: str, retriever: Retriever, top_k: int = 30) -> str:
     dishes = _load_menu_dishes(retriever)
     if not dishes:
         return "NOT_FOUND"
+    term_index = _build_term_index(dishes)
+    required_ingredients, required_techniques = _extract_terms(question, term_index)
+    if not required_ingredients and not required_techniques:
+        return "NOT_FOUND"
+    forbidden_ingredients = _extract_negatives(question, term_index.get("ingredients", []))
+    forbidden_techniques = _extract_negatives(question, term_index.get("techniques", []))
+    required_ingredients = [term for term in required_ingredients if term not in forbidden_ingredients]
+    required_techniques = [term for term in required_techniques if term not in forbidden_techniques]
     bm25 = _get_bm25(retriever, dishes)
-    keywords = extract_keywords(question).get("keywords", [])
-    if not keywords:
-        return "NOT_FOUND"
-    candidates = bm25.search(question, top_k=top_k) if bm25 else []
+    candidates = [item.item for item in (bm25.search(question, top_k=top_k) if bm25 else [])]
     if not candidates:
-        return "NOT_FOUND"
+        candidates = dishes
     answers: list[str] = []
     seen: set[str] = set()
-    for candidate in candidates:
-        dish = candidate.item
-        if _match_dish(dish, keywords):
+    for dish in candidates:
+        if _match_dish(
+            dish,
+            required_ingredients,
+            required_techniques,
+            forbidden_ingredients,
+            forbidden_techniques,
+        ):
             if dish.dish_name not in seen:
                 seen.add(dish.dish_name)
                 answers.append(dish.dish_name)

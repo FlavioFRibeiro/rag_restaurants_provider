@@ -4,8 +4,7 @@ import argparse
 from pathlib import Path
 
 from src.rag.bm25_retriever import BM25DishRetriever, MenuItem
-from src.rag.easy_query_parser import extract_keywords
-from src.rag.pipeline import _match_dish
+from src.rag.pipeline import _build_term_index, _extract_terms, _extract_negatives, _match_dish
 from src.utils.io import read_jsonl
 
 
@@ -44,8 +43,14 @@ def main(argv: list[str] | None = None) -> int:
         print("No dishes found at", menu_path)
         return 1
 
-    keywords = extract_keywords(args.question).get("keywords", [])
-    print("Keywords:", keywords)
+    term_index = _build_term_index(dishes)
+    required_ingredients, required_techniques = _extract_terms(args.question, term_index)
+    forbidden_ingredients = _extract_negatives(args.question, required_ingredients)
+    forbidden_techniques = _extract_negatives(args.question, required_techniques)
+    print("Required ingredients:", required_ingredients)
+    print("Required techniques:", required_techniques)
+    print("Forbidden ingredients:", forbidden_ingredients)
+    print("Forbidden techniques:", forbidden_techniques)
 
     bm25 = BM25DishRetriever(dishes)
     candidates = bm25.search(args.question, top_k=args.top_k)
@@ -55,7 +60,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"- {item.item.dish_name} (score={item.score:.4f})")
 
     print("\nMatched dishes:")
-    matched = [item.item.dish_name for item in candidates if _match_dish(item.item, keywords)]
+    matched = [
+        item.item.dish_name
+        for item in candidates
+        if _match_dish(
+            item.item,
+            required_ingredients,
+            required_techniques,
+            forbidden_ingredients,
+            forbidden_techniques,
+        )
+    ]
     if matched:
         for name in matched:
             print(name)

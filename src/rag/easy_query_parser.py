@@ -5,6 +5,28 @@ from typing import Dict, List
 
 
 _QUOTE_RE = re.compile(r"[\"']([^\"']+)[\"']")
+_STOPWORDS = {
+    "quali",
+    "quale",
+    "piatti",
+    "piatto",
+    "sono",
+    "preparati",
+    "preparato",
+    "usando",
+    "utilizzando",
+    "utilizzate",
+    "includono",
+    "include",
+    "contengono",
+    "contiene",
+    "con",
+    "senza",
+    "non",
+    "ma",
+    "che",
+    "sia",
+}
 
 
 def _tokenize(query: str) -> List[str]:
@@ -26,13 +48,15 @@ def extract_keywords(query: str) -> Dict[str, List[str]]:
             seen.add(normalized)
             keywords.append(normalized)
 
-    tokens = [token for token in _tokenize(query) if len(token) >= 4]
+    tokens = [token for token in _tokenize(query) if len(token) >= 4 and token not in _STOPWORDS]
     for token in tokens:
         if token not in seen:
             seen.add(token)
             keywords.append(token)
 
     for idx in range(len(tokens) - 1):
+        if tokens[idx] in _STOPWORDS or tokens[idx + 1] in _STOPWORDS:
+            continue
         bigram = f"{tokens[idx]} {tokens[idx + 1]}"
         if bigram not in seen:
             seen.add(bigram)

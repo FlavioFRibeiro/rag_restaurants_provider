@@ -17,12 +17,21 @@ _BAD_TITLES = {
     "chef",
     "ingredienti",
     "tecniche",
+    "techniques",
     "ristorante",
 }
 
 _ARTICLE_ONLY = {"la", "il", "lo", "l'", "un", "una", "un'"}
 
 _NARRATIVE_HINTS = {
+    "questa",
+    "questo",
+    "questi",
+    "queste",
+    "nostro",
+    "nostra",
+    "nostri",
+    "nostre",
     "piatto",
     "piatti",
     "esperienza",
@@ -103,6 +112,8 @@ def _is_title_candidate(line: str) -> bool:
         return False
     if _is_bad_title(line):
         return False
+    if _is_technique_line(line):
+        return False
     lowered = line.lower()
     if lowered in _ARTICLE_ONLY:
         return False
@@ -125,6 +136,16 @@ def _is_technique_line(line: str) -> bool:
         return False
     lowered = line.lower()
     return lowered.startswith(_TECHNIQUE_PREFIXES)
+
+
+def _is_ingredient_line(line: str) -> bool:
+    if len(line) > 80:
+        return False
+    stripped = line.lstrip(" \"'“”«»([{")
+    if not stripped:
+        return False
+    first = stripped[0]
+    return first.isupper() or first.isdigit()
 
 
 def _pick_dish_name(buffer: List[str]) -> str:
@@ -208,7 +229,7 @@ def parse_menu_items(text: str, source_file: str) -> List[MenuItem]:
             continue
 
         if state == "ingredients":
-            if len(line) <= 80:
+            if _is_ingredient_line(line):
                 current_ingredients.append(line)
         elif state == "techniques":
             if _is_technique_line(line):
@@ -217,10 +238,10 @@ def parse_menu_items(text: str, source_file: str) -> List[MenuItem]:
                 state = "idle"
                 buffer = [line]
                 continue
-
-        buffer.append(line)
-        if len(buffer) > 25:
-            buffer = buffer[-25:]
+        if state != "techniques":
+            buffer.append(line)
+            if len(buffer) > 25:
+                buffer = buffer[-25:]
 
     flush_current()
     return items
