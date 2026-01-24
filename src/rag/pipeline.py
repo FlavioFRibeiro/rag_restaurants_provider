@@ -1,17 +1,28 @@
 from __future__ import annotations
 
 from typing import Optional
+from pathlib import Path
 
 import re
+import json
+from datetime import datetime
 
+from ..config import get_env
 from ..utils.logging import get_logger
-from ..utils.io import read_jsonl
+from ..utils.io import ensure_dir, read_jsonl
 from .llm import LLMProvider
-from .prompts import build_prompt
-from .bm25_retriever import BM25DishRetriever, MenuItem
+from .prompts import build_prompt, build_llm_selector_prompt
+from .bm25_retriever import BM25DishRetriever, MenuItem, MenuItemWithScore
 from .retriever import RetrievedChunk, Retriever
 
 logger = get_logger(__name__)
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = get_env(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _format_retrieval_only(chunks: list[RetrievedChunk], max_chars: int = 2000) -> str:
@@ -39,6 +50,113 @@ def _normalize_match(text: str) -> str:
 def _tokenize(text: str) -> list[str]:
     return re.findall(r"[\\w\\+]+", text.lower())
 
+
+_BULLET_PREFIX_RE = re.compile(r"^\\s*(?:[-*•]|\\d+[.)])\\s*")
+
+
+def _split_answer_lines(answer: str) -> list[str]:
+    if not answer:
+        return []
+    if answer.strip().upper() == "NOT_FOUND":
+        return []
+    return [line.strip() for line in answer.splitlines() if line.strip()]
+
+def _llm_cache_key(question_id: str | None, candidate_names: list[str]) -> str:
+    qid = question_id or "unknown"
+    candidates_json = json.dumps(candidate_names, ensure_ascii=False, separators=(",", ":"))
+    return f"{qid}|{candidates_json}"
+
+
+def _load_llm_cache(retriever: Retriever) -> tuple[dict[str, dict], Path]:
+    if hasattr(retriever, "_llm_cache"):
+        return retriever._llm_cache, retriever._llm_cache_path  # type: ignore[attr-defined]
+    path = retriever.index_dir.parent / "llm_cache.jsonl"
+    cache: dict[str, dict] = {}
+    if path.exists():
+        for record in read_jsonl(path):
+            key = record.get("key")
+            if not key:
+                key = _llm_cache_key(record.get("question_id"), record.get("candidate_names") or [])
+            cache[key] = record
+    retriever._llm_cache = cache  # type: ignore[attr-defined]
+    retriever._llm_cache_path = path  # type: ignore[attr-defined]
+    return cache, path
+
+
+def _append_llm_cache(path: Path, record: dict) -> None:
+    ensure_dir(path.parent)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False))
+        f.write("\n")
+
+
+def _format_llm_candidates(candidates: list[MenuItem]) -> str:
+    blocks: list[str] = []
+    for idx, dish in enumerate(candidates, start=1):
+        ingredients = ", ".join(dish.ingredients)
+        techniques = ", ".join(dish.techniques)
+        blocks.append(
+            f"{idx}.\n"
+            f"Name: {dish.dish_name}\n"
+            f"Ingredients: {ingredients}\n"
+            f"Techniques: {techniques}"
+        )
+    return "\n\n".join(blocks)
+
+
+def _validate_llm_response(raw: str, candidates: list[str]) -> list[str]:
+    if not raw:
+        return []
+    candidate_set = set(candidates)
+    seen: set[str] = set()
+    valid: list[str] = []
+    for line in raw.splitlines():
+        name = _BULLET_PREFIX_RE.sub("", line).strip()
+        if not name or name not in candidate_set:
+            continue
+        if name in seen:
+            continue
+        seen.add(name)
+        valid.append(name)
+    return valid
+
+
+def _llm_select(
+    question: str,
+    candidates: list[MenuItem],
+    retriever: Retriever,
+    llm_provider: Optional[LLMProvider],
+    question_id: str | None = None,
+) -> tuple[list[str] | None, str | None, bool]:
+    if not llm_provider or not candidates:
+        return None, None, False
+    candidate_names = [dish.dish_name for dish in candidates]
+    cache, cache_path = _load_llm_cache(retriever)
+    key = _llm_cache_key(question_id, candidate_names)
+    if key in cache:
+        cached = cache[key]
+        return cached.get("valid_names") or None, cached.get("response_raw"), True
+
+    formatted = _format_llm_candidates(candidates)
+    prompt = build_llm_selector_prompt(question, formatted)
+    try:
+        response_raw = llm_provider.generate(prompt)
+    except Exception as exc:
+        logger.warning("LLM reasoning failed: %s", exc)
+        return None, None, False
+
+    valid_names = _validate_llm_response(response_raw, candidate_names)
+    record = {
+        "key": key,
+        "question_id": question_id,
+        "candidate_names": candidate_names,
+        "response_raw": response_raw,
+        "valid_names": valid_names,
+        "created_at": datetime.utcnow().isoformat() + "Z",
+    }
+    cache[key] = record
+    _append_llm_cache(cache_path, record)
+    return valid_names or None, response_raw, False
 
 def _load_menu_dishes(retriever: Retriever) -> list[MenuItem]:
     if hasattr(retriever, "_menu_dishes_cache"):
@@ -118,6 +236,56 @@ def _get_bm25(retriever: Retriever, dishes: list[MenuItem]) -> BM25DishRetriever
     return bm25
 
 
+def _get_bm25_top_dishes(
+    question: str, retriever: Retriever, dishes: list[MenuItem], top_k: int = 20
+) -> list[MenuItemWithScore]:
+    bm25 = _get_bm25(retriever, dishes)
+    results = bm25.search(question, top_k=top_k) if bm25 else []
+    seen: set[str] = set()
+    deduped: list[MenuItemWithScore] = []
+    for item in results:
+        name = item.item.dish_name
+        if name in seen:
+            continue
+        seen.add(name)
+        deduped.append(item)
+    return deduped
+
+
+def _build_llm_candidates(
+    dishes: list[MenuItem],
+    deterministic_names: list[str],
+    bm25_results: list[MenuItemWithScore],
+    max_candidates: int = 20,
+) -> list[MenuItem]:
+    dish_by_name: dict[str, MenuItem] = {}
+    for dish in dishes:
+        if dish.dish_name and dish.dish_name not in dish_by_name:
+            dish_by_name[dish.dish_name] = dish
+
+    candidates: list[MenuItem] = []
+    seen: set[str] = set()
+    for name in deterministic_names:
+        dish = dish_by_name.get(name)
+        if not dish or name in seen:
+            continue
+        seen.add(name)
+        candidates.append(dish)
+        if len(candidates) >= max_candidates:
+            return candidates
+
+    for item in bm25_results:
+        name = item.item.dish_name
+        if name in seen:
+            continue
+        seen.add(name)
+        candidates.append(item.item)
+        if len(candidates) >= max_candidates:
+            break
+
+    return candidates
+
+
 def _match_dish(
     dish: MenuItem,
     required_ingredients: list[str],
@@ -191,10 +359,57 @@ def answer_question(
     llm_provider: Optional[LLMProvider],
     top_k: int = 6,
     use_llm: bool = False,
+    question_id: str | None = None,
 ) -> str:
-    easy_answer = answer_easy(question, retriever, top_k=30)
-    if easy_answer != "NOT_FOUND":
-        return easy_answer
+    deterministic_answer = answer_easy(question, retriever, top_k=30)
+    deterministic_names = _split_answer_lines(deterministic_answer)
+    llm_reasoning = _env_flag("ENABLE_LLM_REASONING", False)
+
+    if llm_reasoning:
+        call_llm = False
+        if not deterministic_names:
+            call_llm = True
+        elif len(deterministic_names) > 8:
+            call_llm = True
+        else:
+            return deterministic_answer
+
+        if call_llm:
+            dishes = _load_menu_dishes(retriever)
+            bm25_results = _get_bm25_top_dishes(question, retriever, dishes, top_k=20)
+            candidates = _build_llm_candidates(
+                dishes,
+                deterministic_names,
+                bm25_results,
+                max_candidates=20,
+            )
+            if candidates:
+                llm_names, _, _ = _llm_select(
+                    question,
+                    candidates,
+                    retriever,
+                    llm_provider,
+                    question_id=question_id,
+                )
+            else:
+                llm_names = None
+
+            if not deterministic_names:
+                return "\n".join(llm_names) if llm_names else "NOT_FOUND"
+
+            if not llm_names:
+                return deterministic_answer
+
+            deterministic_set = set(deterministic_names)
+            llm_set = set(llm_names)
+            if llm_set.issubset(deterministic_set):
+                if len(deterministic_names) > 8:
+                    return "\n".join(llm_names)
+                return deterministic_answer
+            return deterministic_answer
+
+    if deterministic_answer != "NOT_FOUND":
+        return deterministic_answer
     if not use_llm:
         return "NOT_FOUND"
 
