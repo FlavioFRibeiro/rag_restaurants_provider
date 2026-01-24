@@ -13,6 +13,7 @@ _INGREDIENTI_INLINE_RE = re.compile(r"^ingredienti\\s*:?(.*)$", re.IGNORECASE)
 _TECNICHE_INLINE_RE = re.compile(r"^tecniche\\s*:?(.*)$", re.IGNORECASE)
 _MULTISPACE_RE = re.compile(r"[ \t]+")
 _MULTINEWLINE_RE = re.compile(r"\n{2,}")
+_TRAILING_VOWEL_RE = re.compile(r"\b([A-Za-z]{7,})([aeiouAEIOU])\2+\b")
 _ARTICLE_TITLE_RE = re.compile(r"^[a-z]['’][A-Z]")
 
 _BAD_TITLES = {
@@ -198,7 +199,15 @@ def _clean_dish_name(text: str) -> str:
     }
     for src, dst in replacements.items():
         cleaned = cleaned.replace(src, dst)
+    if _env_flag("NORMALIZE_TRAILING_VOWEL", True):
+        cleaned = _fix_trailing_vowel_runs(cleaned)
     return cleaned
+
+
+def _fix_trailing_vowel_runs(text: str) -> str:
+    def repl(match: re.Match[str]) -> str:
+        return match.group(1) + match.group(2)
+    return _TRAILING_VOWEL_RE.sub(repl, text)
 
 
 def _is_bad_title_baseline(line: str) -> bool:
