@@ -5,14 +5,16 @@ from pathlib import Path
 
 import re
 import json
+import hashlib
 from datetime import datetime
 
 from ..config import get_env
 from ..utils.logging import get_logger
 from ..utils.io import ensure_dir, read_jsonl
 from .llm import LLMProvider
-from .prompts import build_prompt, build_llm_selector_prompt
+from .prompts import build_prompt, build_llm_selector_prompt, build_llm_reranker_prompt
 from .bm25_retriever import BM25DishRetriever, MenuItem, MenuItemWithScore
+from .easy_query_parser import extract_keywords
 from .retriever import RetrievedChunk, Retriever
 
 logger = get_logger(__name__)
@@ -54,6 +56,14 @@ def _tokenize(text: str) -> list[str]:
 _BULLET_PREFIX_RE = re.compile(r"^\\s*(?:[-*•]|\\d+[.)])\\s*")
 
 
+RERANK_PROMPT_VERSION = "reranker_v6"
+RERANK_MODE = "RERANK_NO_DET"
+RERANK_TOP_K = 20
+RERANK_SCORE_THRESHOLD = 0.85
+RERANK_SCORE_FALLBACK = 0.70
+RERANK_MAX_RESULTS = 2
+
+
 def _split_answer_lines(answer: str) -> list[str]:
     if not answer:
         return []
@@ -61,10 +71,34 @@ def _split_answer_lines(answer: str) -> list[str]:
         return []
     return [line.strip() for line in answer.splitlines() if line.strip()]
 
+
+def _get_target_terms(question: str) -> list[str]:
+    data = extract_keywords(question)
+    return [term.strip() for term in data.get("keywords", []) if term.strip()]
+
+
+def _format_target_terms(terms: list[str]) -> str:
+    if not terms:
+        return "NONE"
+    return "\n".join(f"- {term}" for term in terms)
+
 def _llm_cache_key(question_id: str | None, candidate_names: list[str]) -> str:
     qid = question_id or "unknown"
     candidates_json = json.dumps(candidate_names, ensure_ascii=False, separators=(",", ":"))
     return f"{qid}|{candidates_json}"
+
+
+def _rerank_cache_key(
+    question_id: str | None,
+    candidate_names: list[str],
+    top_k: int,
+) -> tuple[str, str, list[str]]:
+    qid = question_id or "unknown"
+    names_sorted = sorted({name for name in candidate_names if name})
+    joined = "\n".join(names_sorted)
+    digest = hashlib.sha256(joined.encode("utf-8")).hexdigest()
+    key = f"{RERANK_PROMPT_VERSION}|mode={RERANK_MODE}|k={top_k}|{qid}|{digest}"
+    return key, digest, names_sorted
 
 
 def _load_llm_cache(retriever: Retriever) -> tuple[dict[str, dict], Path]:
@@ -104,6 +138,30 @@ def _format_llm_candidates(candidates: list[MenuItem]) -> str:
     return "\n\n".join(blocks)
 
 
+def _truncate_items(items: list[str], limit: int) -> str:
+    if not items:
+        return ""
+    if len(items) <= limit:
+        return ", ".join(items)
+    shown = ", ".join(items[:limit])
+    remaining = len(items) - limit
+    return f"{shown}, ... (+{remaining} itens)"
+
+
+def _format_llm_candidates_compact(candidates: list[MenuItem]) -> str:
+    blocks: list[str] = []
+    for idx, dish in enumerate(candidates, start=1):
+        ingredients = _truncate_items(dish.ingredients, 20)
+        techniques = _truncate_items(dish.techniques, 12)
+        blocks.append(
+            f"{idx}.\n"
+            f"Name: {dish.dish_name}\n"
+            f"Ingredients: {ingredients}\n"
+            f"Techniques: {techniques}"
+        )
+    return "\n\n".join(blocks)
+
+
 def _validate_llm_response(raw: str, candidates: list[str]) -> list[str]:
     if not raw:
         return []
@@ -119,6 +177,114 @@ def _validate_llm_response(raw: str, candidates: list[str]) -> list[str]:
         seen.add(name)
         valid.append(name)
     return valid
+
+
+def _extract_json_object(raw: str) -> str | None:
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    return raw[start : end + 1]
+
+
+def _validate_llm_json_score_map_response(
+    raw: str, candidate_names: set[str]
+) -> dict[str, float] | None:
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        extracted = _extract_json_object(raw)
+        if not extracted:
+            return None
+        try:
+            data = json.loads(extracted)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    scores: dict[str, float] = {}
+    for key, value in data.items():
+        if key not in candidate_names:
+            continue
+        if isinstance(value, (int, float)):
+            score = float(value)
+            if score < 0.0:
+                score = 0.0
+            if score > 1.0:
+                score = 1.0
+            scores[key] = score
+    if not scores:
+        return None
+    return scores
+
+
+def _llm_rerank_select(
+    question: str,
+    candidates: list[MenuItem],
+    retriever: Retriever,
+    llm_provider: Optional[LLMProvider],
+    target_terms: str,
+    top_k: int,
+    question_id: str | None = None,
+) -> tuple[dict[str, float] | None, str | None, bool]:
+    if not llm_provider or not candidates:
+        return None, None, False
+    candidate_names = [dish.dish_name for dish in candidates if dish.dish_name]
+    if not candidate_names:
+        return None, None, False
+
+    cache, cache_path = _load_llm_cache(retriever)
+    key, digest, names_sorted = _rerank_cache_key(question_id, candidate_names, top_k)
+    if key in cache:
+        cached = cache[key]
+        return cached.get("scores_map"), cached.get("response_raw"), True
+
+    formatted = _format_llm_candidates_compact(candidates)
+    prompt = build_llm_reranker_prompt(question, formatted, target_terms)
+    try:
+        response_raw = llm_provider.generate(prompt)
+    except Exception as exc:
+        logger.warning("LLM rerank failed: %s", exc)
+        return None, None, False
+
+    scores_map = _validate_llm_json_score_map_response(response_raw, set(candidate_names))
+    record = {
+        "key": key,
+        "prompt_version": RERANK_PROMPT_VERSION,
+        "mode": RERANK_MODE,
+        "question_id": question_id,
+        "candidate_names": candidate_names,
+        "candidate_names_sorted": names_sorted,
+        "candidate_hash": digest,
+        "bm25_top_k": top_k,
+        "response_raw": response_raw,
+        "scores_map": scores_map,
+        "created_at": datetime.utcnow().isoformat() + "Z",
+    }
+    cache[key] = record
+    _append_llm_cache(cache_path, record)
+    return scores_map, response_raw, False
+
+
+def _select_rerank_results(
+    scores_map: dict[str, float], bm25_results: list[MenuItemWithScore]
+) -> list[str]:
+    score_by_bm25 = {item.item.dish_name: item.score for item in bm25_results}
+    ranked: list[tuple[str, float, float]] = []
+    for name, score in scores_map.items():
+        ranked.append((name, score, score_by_bm25.get(name, 0.0)))
+    ranked.sort(key=lambda item: (item[1], item[2], item[0]), reverse=True)
+
+    selected = [name for name, score, _ in ranked if score >= RERANK_SCORE_THRESHOLD]
+    if not selected and ranked:
+        top_name, top_score, _ = ranked[0]
+        if top_score >= RERANK_SCORE_FALLBACK:
+            selected = [top_name]
+    if len(selected) > RERANK_MAX_RESULTS:
+        selected = selected[:RERANK_MAX_RESULTS]
+    return selected
 
 
 def _llm_select(
@@ -366,15 +532,55 @@ def answer_question(
     llm_reasoning = _env_flag("ENABLE_LLM_REASONING", False)
 
     if llm_reasoning:
-        call_llm = False
         if not deterministic_names:
-            call_llm = True
-        elif len(deterministic_names) > 8:
-            call_llm = True
-        else:
-            return deterministic_answer
+            dishes = _load_menu_dishes(retriever)
+            term_index = _build_term_index(dishes)
+            required_ingredients, required_techniques = _extract_terms(question, term_index)
+            should_rerank = bool(required_ingredients or required_techniques)
+            rerank_enabled = _env_flag("ENABLE_RERANKER", True)
+            if rerank_enabled and should_rerank and llm_provider is not None:
+                bm25_results = _get_bm25_top_dishes(
+                    question, retriever, dishes, top_k=RERANK_TOP_K
+                )
+                candidates = [item.item for item in bm25_results[:RERANK_TOP_K]]
+                if candidates:
+                    target_terms = _format_target_terms(_get_target_terms(question))
+                    scores_map, _, _ = _llm_rerank_select(
+                        question,
+                        candidates,
+                        retriever,
+                        llm_provider,
+                        target_terms=target_terms,
+                        top_k=RERANK_TOP_K,
+                        question_id=question_id,
+                    )
+                    if scores_map:
+                        selected = _select_rerank_results(scores_map, bm25_results)
+                        if selected:
+                            return "\n".join(selected)
 
-        if call_llm:
+            if llm_provider is None:
+                return "NOT_FOUND"
+            bm25_results = _get_bm25_top_dishes(question, retriever, dishes, top_k=20)
+            candidates = _build_llm_candidates(
+                dishes,
+                deterministic_names,
+                bm25_results,
+                max_candidates=20,
+            )
+            if candidates:
+                llm_names, _, _ = _llm_select(
+                    question,
+                    candidates,
+                    retriever,
+                    llm_provider,
+                    question_id=question_id,
+                )
+            else:
+                llm_names = None
+            return "\n".join(llm_names) if llm_names else "NOT_FOUND"
+
+        if len(deterministic_names) > 8:
             dishes = _load_menu_dishes(retriever)
             bm25_results = _get_bm25_top_dishes(question, retriever, dishes, top_k=20)
             candidates = _build_llm_candidates(
@@ -394,19 +600,16 @@ def answer_question(
             else:
                 llm_names = None
 
-            if not deterministic_names:
-                return "\n".join(llm_names) if llm_names else "NOT_FOUND"
-
             if not llm_names:
                 return deterministic_answer
 
             deterministic_set = set(deterministic_names)
             llm_set = set(llm_names)
             if llm_set.issubset(deterministic_set):
-                if len(deterministic_names) > 8:
-                    return "\n".join(llm_names)
-                return deterministic_answer
+                return "\n".join(llm_names)
             return deterministic_answer
+
+        return deterministic_answer
 
     if deterministic_answer != "NOT_FOUND":
         return deterministic_answer

@@ -36,6 +36,42 @@ PRATOS_CANDIDATOS:
 {formatted_candidates}
 """
 
+LLM_RERANKER_PROMPT = """SYSTEM:
+Voce e um mecanismo de pontuacao (reranker) deterministico.
+Sua tarefa e atribuir um score de relevancia para cada prato candidato,
+indicando o quao bem ele satisfaz a PERGUNTA,
+usando SOMENTE os dados fornecidos (Ingredients e Techniques).
+Nao use conhecimento externo.
+Nao invente ingredientes ou tecnicas.
+
+USER:
+Voce recebera:
+- uma PERGUNTA
+- uma lista de PRATOS_CANDIDATOS (Name, Ingredients, Techniques)
+
+Para CADA prato, atribua um score numerico de 0.0 a 1.0:
+- 1.0 = satisfaz claramente a pergunta com evidencia explicita
+- 0.5 = possivelmente satisfaz, evidencia parcial
+- 0.0 = nao satisfaz
+
+REGRAS:
+- Use APENAS Ingredients e Techniques fornecidos.
+- Se a pergunta tiver negacoes (ex: "senza", "escludendo", "non"), penalize fortemente pratos que violem a negacao (score 0.0).
+- Retorne APENAS um JSON valido no formato:
+  {{"Dish Name 1": 0.0, "Dish Name 2": 0.7, ...}}
+- Nao inclua texto fora do JSON.
+- As chaves devem ser EXATAMENTE os nomes dos pratos fornecidos.
+
+PERGUNTA:
+{question}
+
+TERMOS_ALVO:
+{target_terms}
+
+PRATOS_CANDIDATOS:
+{formatted_candidates}
+"""
+
 
 def build_prompt(question: str, contexts: list[str]) -> str:
     context_block = "\n\n".join(contexts)
@@ -51,4 +87,16 @@ def build_llm_selector_prompt(question: str, formatted_candidates: str) -> str:
     return LLM_SELECTOR_PROMPT.format(
         question=question,
         formatted_candidates=formatted_candidates,
+    )
+
+
+def build_llm_reranker_prompt(
+    question: str,
+    formatted_candidates: str,
+    target_terms: str,
+) -> str:
+    return LLM_RERANKER_PROMPT.format(
+        question=question,
+        formatted_candidates=formatted_candidates,
+        target_terms=target_terms,
     )
