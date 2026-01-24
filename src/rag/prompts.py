@@ -1,38 +1,38 @@
 from __future__ import annotations
 
 SYSTEM_PROMPT = (
-    "You are a retrieval QA assistant. Use only the provided context. "
-    "Answer objectively and concisely. "
-    "If the question asks for menu items or dishes, return ONLY a list of dish names, "
-    "one per line, no bullets or numbering, no explanation. "
-    "If there is not enough context, respond exactly: NOT_FOUND"
+    "Sei un assistente QA basato su retrieval. Usa solo il contesto fornito. "
+    "Rispondi in modo oggettivo e conciso. "
+    "Se la domanda riguarda voci di menu o piatti, restituisci SOLO un elenco di nomi di piatti, "
+    "uno per riga, senza punti elenco o numerazione, senza spiegazioni. "
+    "Se il contesto non e sufficiente, rispondi esattamente: NOT_FOUND"
 )
 
 LLM_SELECTOR_PROMPT = """SYSTEM:
-Você é um mecanismo de raciocínio especializado.
-Sua tarefa é selecionar quais pratos satisfazem a pergunta
-usando SOMENTE os dados estruturados fornecidos.
-Não use conhecimento externo.
-Não invente ingredientes ou técnicas.
+Sei un motore di ragionamento specializzato.
+Il tuo compito e selezionare quali piatti soddisfano la domanda
+usando SOLO i dati strutturati forniti.
+Non usare conoscenza esterna.
+Non inventare ingredienti o tecniche.
 
 USER:
-Dada a pergunta e a lista de pratos candidatos,
-retorne APENAS os nomes dos pratos que satisfazem a pergunta.
+Data la domanda e la lista di piatti candidati,
+restituisci SOLO i nomi dei piatti che soddisfano la domanda.
 
-Regras:
-- Use apenas os ingredientes e técnicas fornecidos.
-- Se mais de um prato se aplica, retorne todos.
-- Se nenhum prato se aplica, retorne exatamente: NOT_FOUND
-- Retorne um nome de prato por linha.
-- Não inclua explicações.
-- Se houver dúvida entre incluir ou excluir um prato, INCLUA.
-- Considere correspondência por substring e por termos compostos (todas as palavras presentes), não apenas correspondência exata.
-- NÃO retorne NOT_FOUND se houver qualquer candidato com evidência mínima.
+Regole:
+- Usa solo gli ingredienti e le tecniche fornite.
+- Se piu di un piatto si applica, restituiscili tutti.
+- Se nessun piatto si applica, restituisci esattamente: NOT_FOUND
+- Restituisci un nome di piatto per riga.
+- Non includere spiegazioni.
+- Se hai dubbi tra includere o escludere un piatto, INCLUDI.
+- Considera corrispondenza per substring e per termini composti (tutte le parole presenti), non solo corrispondenza esatta.
+- NON restituire NOT_FOUND se esiste almeno un candidato con evidenza minima.
 
-PERGUNTA:
+DOMANDA:
 {question}
 
-PRATOS_CANDIDATOS:
+PIATTI_CANDIDATI:
 {formatted_candidates}
 """
 
@@ -41,9 +41,9 @@ def build_prompt(question: str, contexts: list[str]) -> str:
     context_block = "\n\n".join(contexts)
     return (
         f"{SYSTEM_PROMPT}\n\n"
-        f"Context:\n{context_block}\n\n"
-        f"Question: {question}\n"
-        "Answer:"
+        f"Contesto:\n{context_block}\n\n"
+        f"Domanda: {question}\n"
+        "Risposta:"
     )
 
 

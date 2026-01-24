@@ -19,7 +19,7 @@ class LLMProvider:
 @dataclass
 class OpenAIProvider(LLMProvider):
     api_key: str
-    model: str = "gpt-4o-mini"
+    model: str
     timeout: int = 60
 
     def generate(self, prompt: str) -> str:
