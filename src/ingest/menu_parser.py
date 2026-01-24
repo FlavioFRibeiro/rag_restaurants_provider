@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Iterable
 
-_INGREDIENTI_RE = re.compile(r"\bIngredienti\b\s*:?", re.IGNORECASE)
-_TECNICHE_RE = re.compile(r"\bTecniche\b\s*:?", re.IGNORECASE)
+_INGREDIENTI_RE = re.compile(r"^ingredienti\\s*:?$", re.IGNORECASE)
+_TECNICHE_RE = re.compile(r"^tecniche\\s*:?$", re.IGNORECASE)
+_INGREDIENTI_INLINE_RE = re.compile(r"^ingredienti\\s*:?(.*)$", re.IGNORECASE)
+_TECNICHE_INLINE_RE = re.compile(r"^tecniche\\s*:?(.*)$", re.IGNORECASE)
 _MULTISPACE_RE = re.compile(r"[ \t]+")
 _MULTINEWLINE_RE = re.compile(r"\n{2,}")
+_ARTICLE_TITLE_RE = re.compile(r"^[a-z]['’][A-Z]")
 
 _BAD_TITLES = {
     "menu",
@@ -44,6 +47,25 @@ _NARRATIVE_HINTS = {
     "ospiti",
     "presentiamo",
     "invit",
+    "successivamente",
+    "viene",
+    "vengono",
+    "venire",
+    "aggiunge",
+    "aggiungono",
+    "accompagna",
+    "completa",
+    "infine",
+    "presenta",
+    "preparati",
+    "preparato",
+    "servito",
+    "servita",
+    "condito",
+    "condita",
+    "conditi",
+    "adagiato",
+    "adagiata",
 }
 
 _TECHNIQUE_PREFIXES = (
@@ -82,8 +104,28 @@ class MenuItem:
 
 def _normalize_text(text: str) -> str:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-    normalized = _INGREDIENTI_RE.sub("\nIngredienti\n", normalized)
-    normalized = _TECNICHE_RE.sub("\nTecniche\n", normalized)
+    lines = normalized.splitlines()
+    out_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if _INGREDIENTI_RE.match(stripped):
+            out_lines.append("Ingredienti")
+            continue
+        if _TECNICHE_RE.match(stripped):
+            out_lines.append("Tecniche")
+            continue
+        inline_ing = _INGREDIENTI_INLINE_RE.match(stripped)
+        if inline_ing and inline_ing.group(1).strip():
+            out_lines.append("Ingredienti")
+            out_lines.append(inline_ing.group(1).strip())
+            continue
+        inline_tec = _TECNICHE_INLINE_RE.match(stripped)
+        if inline_tec and inline_tec.group(1).strip():
+            out_lines.append("Tecniche")
+            out_lines.append(inline_tec.group(1).strip())
+            continue
+        out_lines.append(line)
+    normalized = "\n".join(out_lines)
     normalized = _MULTISPACE_RE.sub(" ", normalized)
     normalized = _MULTINEWLINE_RE.sub("\n", normalized)
     return normalized
@@ -126,9 +168,11 @@ def _is_title_candidate(line: str) -> bool:
     if not stripped:
         return False
     first = stripped[0]
-    if not (first.isupper() or first.isdigit()):
-        return False
-    return True
+    if first.isupper() or first.isdigit():
+        return True
+    if _ARTICLE_TITLE_RE.match(stripped):
+        return True
+    return False
 
 
 def _is_technique_line(line: str) -> bool:
@@ -176,7 +220,53 @@ def _extract_restaurant_name(source_file: str) -> str | None:
     return name or None
 
 
-def parse_menu_items(text: str, source_file: str) -> List[MenuItem]:
+def _normalize_term(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def _parse_narrative(
+    lines: list[str],
+    source_file: str,
+    restaurant_name: str | None,
+    known_ingredients: Iterable[str],
+    known_techniques: Iterable[str],
+) -> List[MenuItem]:
+    items: List[MenuItem] = []
+    known_ing = sorted({_normalize_term(term) for term in known_ingredients if term}, key=len, reverse=True)
+    known_tec = sorted({_normalize_term(term) for term in known_techniques if term}, key=len, reverse=True)
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not _is_title_candidate(line):
+            i += 1
+            continue
+        dish_name = line
+        j = i + 1
+        while j < len(lines) and not _is_title_candidate(lines[j]) and lines[j].lower() not in {"ingredienti", "tecniche"}:
+            j += 1
+        block_text = _normalize_term(" ".join(lines[i + 1 : j]))
+        ingredients = [term for term in known_ing if term and term in block_text]
+        techniques = [term for term in known_tec if term and term in block_text]
+        if len(ingredients) >= 2 or len(techniques) >= 1:
+            items.append(
+                MenuItem(
+                    dish_name=dish_name,
+                    ingredients=ingredients,
+                    techniques=techniques,
+                    source_file=source_file,
+                    restaurant_name=restaurant_name,
+                )
+            )
+        i = j
+    return items
+
+
+def parse_menu_items(
+    text: str,
+    source_file: str,
+    known_ingredients: Iterable[str] | None = None,
+    known_techniques: Iterable[str] | None = None,
+) -> List[MenuItem]:
     normalized = _normalize_text(text)
     lines = [_clean_line(line) for line in normalized.splitlines()]
     lines = [line for line in lines if line]
@@ -204,6 +294,11 @@ def parse_menu_items(text: str, source_file: str) -> List[MenuItem]:
         current_name = ""
         current_ingredients = []
         current_techniques = []
+
+    if not any(line.lower() == "ingredienti" for line in lines):
+        if known_ingredients and known_techniques:
+            return _parse_narrative(lines, source_file, restaurant_name, known_ingredients, known_techniques)
+        return items
 
     for line in lines:
         lowered = line.lower()

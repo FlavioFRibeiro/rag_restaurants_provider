@@ -93,8 +93,7 @@ def _collect_terms(question: str, known_terms: list[str]) -> list[str]:
 def _extract_terms(question: str, term_index: dict[str, list[str]]) -> tuple[list[str], list[str]]:
     ingredients = _collect_terms(question, term_index.get("ingredients", []))
     techniques = _collect_terms(question, term_index.get("techniques", []))
-    technique_set = set(techniques)
-    ingredients = [term for term in ingredients if term not in technique_set]
+    ingredients = [term for term in ingredients if not any(term in tech for tech in techniques)]
     return ingredients, techniques
 
 
@@ -105,7 +104,7 @@ def _extract_negatives(question: str, terms: list[str]) -> list[str]:
     for term in terms:
         if not term:
             continue
-        pattern = re.compile(r"(senza|evitando|escludendo|non[^\\n]{0,40})\\s+" + re.escape(term))
+        pattern = re.compile(r"(senza|evitando|escludendo|non)[^\n]{0,60}" + re.escape(term))
         if pattern.search(normalized):
             negatives.append(term)
     return negatives

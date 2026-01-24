@@ -57,6 +57,7 @@ def build_index(
     documents: list[dict] = []
     texts: list[str] = []
     menu_dishes: list[dict] = []
+    menu_sources: list[tuple[Path, str, str]] = []
 
     for file_path in files:
         raw_text = load_text_from_file(file_path)
@@ -71,42 +72,7 @@ def build_index(
             source_rel = str(file_path)
 
         if doc_type == "menu":
-            dishes = parse_menu_items(raw_text, source_rel)
-            if not dishes:
-                logger.info("No dishes parsed from menu: %s", file_path)
-                continue
-
-            for dish in dishes:
-                dish_name = dish.dish_name.strip()
-                ingredients = [item.strip() for item in dish.ingredients if item.strip()]
-                techniques = [item.strip() for item in dish.techniques if item.strip()]
-                if not dish_name or not ingredients:
-                    continue
-                text = (
-                    f"DISH: {dish_name}\n"
-                    f"INGREDIENTS: {', '.join(ingredients)}\n"
-                    f"TECHNIQUES: {', '.join(techniques)}"
-                )
-                metadata = {
-                    "dish_name": dish_name,
-                    "source_file": source_rel,
-                    "doc_type": dish.doc_type,
-                    "ingredients": ingredients,
-                    "techniques": techniques,
-                    "restaurant_name": dish.restaurant_name,
-                }
-                documents.append({"text": text, "metadata": metadata})
-                texts.append(text)
-                menu_dishes.append(
-                    {
-                        "dish_name": dish_name,
-                        "ingredients": ingredients,
-                        "techniques": techniques,
-                        "source_file": source_rel,
-                        "doc_type": dish.doc_type,
-                        "restaurant_name": dish.restaurant_name,
-                    }
-                )
+            menu_sources.append((file_path, source_rel, raw_text))
             continue
 
         chunks = chunk_document(raw_text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -118,6 +84,69 @@ def build_index(
             }
             documents.append({"text": chunk.text, "metadata": metadata})
             texts.append(chunk.text)
+
+    menu_items = []
+    menu_missing: list[tuple[Path, str, str]] = []
+    for file_path, source_rel, raw_text in menu_sources:
+        dishes = parse_menu_items(raw_text, source_rel)
+        if not dishes:
+            logger.info("No dishes parsed from menu: %s", file_path)
+            menu_missing.append((file_path, source_rel, raw_text))
+            continue
+        menu_items.extend(dishes)
+
+    known_ingredients = {item.strip() for dish in menu_items for item in dish.ingredients if item.strip()}
+    known_techniques = {item.strip() for dish in menu_items for item in dish.techniques if item.strip()}
+    if menu_missing and known_ingredients and known_techniques:
+        for file_path, source_rel, raw_text in menu_missing:
+            dishes = parse_menu_items(
+                raw_text,
+                source_rel,
+                known_ingredients=known_ingredients,
+                known_techniques=known_techniques,
+            )
+            if not dishes:
+                logger.info("No dishes parsed from narrative menu: %s", file_path)
+                continue
+            menu_items.extend(dishes)
+
+    menu_seen: set[tuple[str, str]] = set()
+    for dish in menu_items:
+        dish_name = dish.dish_name.strip()
+        ingredients = [item.strip() for item in dish.ingredients if item.strip()]
+        techniques = [item.strip() for item in dish.techniques if item.strip()]
+        if not dish_name or not ingredients:
+            continue
+        source_rel = dish.source_file or ""
+        key = (dish_name, source_rel)
+        if key in menu_seen:
+            continue
+        menu_seen.add(key)
+        text = (
+            f"DISH: {dish_name}\n"
+            f"INGREDIENTS: {', '.join(ingredients)}\n"
+            f"TECHNIQUES: {', '.join(techniques)}"
+        )
+        metadata = {
+            "dish_name": dish_name,
+            "source_file": source_rel,
+            "doc_type": dish.doc_type,
+            "ingredients": ingredients,
+            "techniques": techniques,
+            "restaurant_name": dish.restaurant_name,
+        }
+        documents.append({"text": text, "metadata": metadata})
+        texts.append(text)
+        menu_dishes.append(
+            {
+                "dish_name": dish_name,
+                "ingredients": ingredients,
+                "techniques": techniques,
+                "source_file": source_rel,
+                "doc_type": dish.doc_type,
+                "restaurant_name": dish.restaurant_name,
+            }
+        )
 
     if not texts:
         raise RuntimeError("No text chunks produced. Check your input files.")

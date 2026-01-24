@@ -45,12 +45,14 @@ def main(argv: list[str] | None = None) -> int:
 
     term_index = _build_term_index(dishes)
     required_ingredients, required_techniques = _extract_terms(args.question, term_index)
-    forbidden_ingredients = _extract_negatives(args.question, required_ingredients)
-    forbidden_techniques = _extract_negatives(args.question, required_techniques)
-    print("Required ingredients:", required_ingredients)
-    print("Required techniques:", required_techniques)
+    forbidden_ingredients = _extract_negatives(args.question, term_index.get("ingredients", []))
+    forbidden_techniques = _extract_negatives(args.question, term_index.get("techniques", []))
     print("Forbidden ingredients:", forbidden_ingredients)
     print("Forbidden techniques:", forbidden_techniques)
+    required_ingredients = [term for term in required_ingredients if term not in forbidden_ingredients]
+    required_techniques = [term for term in required_techniques if term not in forbidden_techniques]
+    print("Required ingredients:", required_ingredients)
+    print("Required techniques:", required_techniques)
 
     bm25 = BM25DishRetriever(dishes)
     candidates = bm25.search(args.question, top_k=args.top_k)
