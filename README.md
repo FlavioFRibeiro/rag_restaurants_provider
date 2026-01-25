@@ -1,57 +1,98 @@
 # Datapizza RAG MVP
+_Soluzione per il Datapizza AI Engineer Technical Test_
 
-A simple, reliable RAG pipeline to answer CSV questions using PDF (and optional CSV) context.
-The focus is a working, local-first system that is easy to run and iterate.
+## Project Overview
+Il progetto privilegia un baseline funzionale rispetto a un’architettura complessa. Considerando il tempo limitato che avevo, l’obiettivo è fornire una soluzione RAG end-to-end pulita che:
+- costruisca l’indice localmente
+- risponda alle domande in modo consistente
+- valuti automaticamente i risultati
+Questo approccio mantiene il sistema facilmente debuggabile ed evita l’overengineering.
 
-## Why a simple RAG
-The project prioritizes a functional baseline over a complex architecture.
-Given limited time, the goal is to deliver a clean end-to-end RAG that:
-- builds an index locally
-- answers questions consistently
-- evaluates results automatically
+## High-level Architecture
+- Ingestion: lettura di PDF/CSV e raccolta dei file sorgente.
+- Parsing: estrazione strutturata dei menu (piatti, ingredienti, tecniche).
+- Indexing: creazione di artifacts per retrieval (FAISS + menu_dishes).
+- Retrieval: BM25 per i piatti dei menu e dense retrieval per il resto.
+- Answering: matching deterministico per il livello Easy, LLM opzionale e conservativo.
+- Evaluation: calcolo F1 overlap e salvataggio degli outputs di run.
 
-This keeps the system debuggable and avoids overengineering.
+## Design Principles
+- Explainability: regole e parsing deterministici per ridurre ambiguita.
+- Robustness: fallback, validazioni e output controllati.
+- Offline & reproducible: pipeline locale, artifacts versionabili, cache LLM.
+- Conservative use of LLMs: LLM usato solo come supporto selettivo.
 
-## Architecture (v1)
-- Ingest: PDFs -> text (pypdf with pdfplumber fallback).
-- Chunking: fixed-size character chunks with overlap.
-- Menus: parsed into structured dishes, retrieved via BM25 + deterministic matching.
-- Other docs: embedded with SentenceTransformers and indexed with FAISS.
-- LLM: optional; used only when enabled and a key is available.
-- Eval: F1 overlap scoring, runs saved under `runs/`.
+## Repository Structure
+```
+data/
+  raw/            # input PDFs e CSV
+  questions/      # questions.csv
+  ground_truth/   # ground truth CSV
+  processed/      # index + menu_dishes + cache
+runs/             # output per esecuzione
+scripts/          # strumenti di debug e diagnosi
+src/              # codice sorgente
+  cli.py          # entrypoint CLI
+  config.py       # env + paths
+  ingest/         # ingestion + parsing + build_index
+  rag/            # retrieval + pipeline + prompts + LLM
+  eval/           # evaluation + metriche
+  utils/          # I/O, logging, text utils
+tests/            # placeholder per test leggeri
+.env.example      # template variabili ambiente
+.env              # configurazione locale (non committare chiavi)
+pyproject.toml    # metadata e dipendenze
+requirements.txt  # dipendenze per installazione rapida
+TECHNICAL_DOC.md  # documentazione tecnica dettagliata (separata)
+```
 
-## Setup
-1) Python 3.11+
-2) Create and activate a virtualenv
-3) Install dependencies:
-   pip install -r requirements.txt
+## How to Run
+Creare un virtualenv e installare le dipendenze:
 
-## Configure .env
-Copy `.env.example` to `.env` and set one provider key:
-- OPENAI_API_KEY=...
-- GEMINI_API_KEY=...
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-Optional:
-- OPENAI_MODEL=...
-- GEMINI_MODEL=...
-- ENABLE_LLM_REASONING=0/1
-
-## Build index
+Build index:
+```bash
 python -m src.ingest.build_index --input-dir data/raw --out-dir data/processed/index
+```
 
-## Run evaluation
-python -m src.eval.run_eval --questions data/questions/domande.csv --ground-truth data/ground_truth/ground_truth_mapped.csv --index-dir data/processed/index --out-dir runs/run_001
+Run evaluation:
+```bash
+python -m src.eval.run_eval --questions data/questions/<questions.csv> --ground-truth data/ground_truth/<ground_truth.csv> --index-dir data/processed/index --out-dir runs/run_001
+```
 
-## Outputs
-- data/processed/index/faiss.index
-- data/processed/index/documents.jsonl
-- data/processed/index/embed_config.json
-- data/processed/menu_dishes.jsonl
-- runs/<run_id>/predictions.csv
-- runs/<run_id>/eval_report.json
+Outputs attesi:
+- `data/processed/index/faiss.index`
+- `data/processed/index/documents.jsonl`
+- `data/processed/index/embed_config.json`
+- `data/processed/menu_dishes.jsonl`
+- `runs/<run_id>/predictions.csv`
+- `runs/<run_id>/eval_report.json`
 
-### Limitations and Next Steps
-- Chunking is naive and retrieval is top-k only.
-- PDF parsing depends on a usable text layer.
-- Menu parsing is heuristic and may miss edge cases.
-- Next steps: add lightweight reranking and improve menu parsing diagnostics.
+## Configuration (breve)
+Il progetto usa variabili in `.env` per abilitare provider LLM o flag di comportamento. I dettagli completi sono in `TECHNICAL_DOC.md`.
+
+## Evaluation Philosophy
+La valutazione usa F1 overlap tra liste di risposte. L'obiettivo e dimostrare ragionamento tecnico e stabilita del sistema, non una corsa al leaderboard.
+
+## Notes, Limitations
+- Focus sul subset Easy e sulla stabilita del parsing dei menu.
+- L'estrazione PDF dipende dalla qualita del text layer.
+- Componenti sperimentali esistono nei `scripts/`, ma non fanno parte del flusso standard.
+- Parsing basato su heuristics: buono per spiegabilita, meno flessibile su formati nuovi.
+- Chunking semplice: efficace ma non semantico.
+- Retrieval ibrido: BM25 copre termini rari, ma non risolve sinonimi complessi.
+
+## Next Steps
+- Aggiungere un flag per truncare ingredienti/tecniche nel prompt LLM (riduce errori senza cambiare la logica).
+- Integrare un report diagnostico leggero nel run di eval (per capire velocemente dove si perdono risposte).
+
+## Documentation
+La documentazione tecnica dettagliata e in `TECHNICAL_DOC.md`.
+
+## Author
+Parte del Datapizza AI Engineer Technical Test.
