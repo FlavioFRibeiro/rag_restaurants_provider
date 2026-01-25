@@ -1,14 +1,14 @@
 # Datapizza RAG MVP
 _Soluzione per il Datapizza AI Engineer Technical Test_
 
-## Project Overview
+## Panoramica del progetto
 Il progetto privilegia un baseline funzionale rispetto a un’architettura complessa. Considerando il tempo limitato che avevo, l’obiettivo è fornire una soluzione RAG end-to-end pulita che:
 - costruisca l’indice localmente
 - risponda alle domande in modo consistente
 - valuti automaticamente i risultati
 Questo approccio mantiene il sistema facilmente debuggabile ed evita l’overengineering.
 
-## High-level Architecture
+## Architettura di alto livello
 - Ingestion: lettura di PDF/CSV e raccolta dei file sorgente.
 - Parsing: estrazione strutturata dei menu (piatti, ingredienti, tecniche).
 - Indexing: creazione di artifacts per retrieval (FAISS + menu_dishes).
@@ -16,13 +16,13 @@ Questo approccio mantiene il sistema facilmente debuggabile ed evita l’overeng
 - Answering: matching deterministico per il livello Easy, LLM opzionale e conservativo.
 - Evaluation: calcolo F1 overlap e salvataggio degli outputs di run.
 
-## Design Principles
+## Principi di progettazione
 - Explainability: regole e parsing deterministici per ridurre ambiguita.
 - Robustness: fallback, validazioni e output controllati.
 - Offline & reproducible: pipeline locale, artifacts versionabili, cache LLM.
 - Conservative use of LLMs: LLM usato solo come supporto selettivo.
 
-## Repository Structure
+## Struttura del repository
 ```
 data/
   raw/            # input PDFs e CSV
@@ -46,7 +46,7 @@ requirements.txt  # dipendenze per installazione rapida
 TECHNICAL_DOC.md  # documentazione tecnica dettagliata (separata)
 ```
 
-## How to Run
+## Come fare il Run
 Creare un virtualenv e installare le dipendenze:
 
 ```bash
@@ -73,13 +73,13 @@ Outputs attesi:
 - `runs/<run_id>/predictions.csv`
 - `runs/<run_id>/eval_report.json`
 
-## Configuration (breve)
+## Configurazione
 Il progetto usa variabili in `.env` per abilitare provider LLM o flag di comportamento. I dettagli completi sono in `TECHNICAL_DOC.md`.
 
-## Evaluation Philosophy
+## Filosofia della valutazione
 La valutazione usa F1 overlap tra liste di risposte. L'obiettivo e dimostrare ragionamento tecnico e stabilita del sistema, non una corsa al leaderboard.
 
-## Notes, Limitations
+## Note, limitazioni
 - Focus sul subset Easy e sulla stabilita del parsing dei menu.
 - L'estrazione PDF dipende dalla qualita del text layer.
 - Componenti sperimentali esistono nei `scripts/`, ma non fanno parte del flusso standard.
@@ -87,12 +87,9 @@ La valutazione usa F1 overlap tra liste di risposte. L'obiettivo e dimostrare ra
 - Chunking semplice: efficace ma non semantico.
 - Retrieval ibrido: BM25 copre termini rari, ma non risolve sinonimi complessi.
 
-## Next Steps
+## Prossimi passi
 - Aggiungere un flag per truncare ingredienti/tecniche nel prompt LLM (riduce errori senza cambiare la logica).
 - Integrare un report diagnostico leggero nel run di eval (per capire velocemente dove si perdono risposte).
 
-## Documentation
+## Documentatzzione
 La documentazione tecnica dettagliata e in `TECHNICAL_DOC.md`.
-
-## Author
-Parte del Datapizza AI Engineer Technical Test.
