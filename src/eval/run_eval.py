@@ -30,7 +30,7 @@ def load_questions(path: Path) -> list[dict]:
 
     fieldnames = rows[0].keys()
     question_key = None
-    for key in ["question", "pergunta", "query", "text"]:
+    for key in ["question", "pergunta", "query", "text", "domanda"]:
         if key in fieldnames:
             question_key = key
             break
