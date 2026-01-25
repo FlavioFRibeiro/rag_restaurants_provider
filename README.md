@@ -87,9 +87,11 @@ La valutazione usa F1 overlap tra liste di risposte. L'obiettivo e dimostrare ra
 - Chunking semplice: efficace ma non semantico.
 - Retrieval ibrido: BM25 copre termini rari, ma non risolve sinonimi complessi.
 
-## Prossimi passi
-- Aggiungere un flag per truncare ingredienti/tecniche nel prompt LLM (riduce errori senza cambiare la logica).
-- Integrare un report diagnostico leggero nel run di eval (per capire velocemente dove si perdono risposte).
+## Possibili sviluppi futuri
+- L’architettura attuale privilegia semplicità, spiegabilità e comportamento deterministico, risultando adeguata allo scope e alle tempistiche di questo progetto
+- Un possibile passo successivo potrebbe essere l’adozione di un approccio GraphRAG o di un’architettura ibrida RAG + multi-agente, che permetta di modellare in modo esplicito le relazioni tra piatti, ingredienti, tecniche e informazioni di contesto.
+- Tuttavia, tali soluzioni introdurrebbero una complessità significativamente maggiore in termini di progettazione, manutenzione e valutazione
+- Per questi motivi, questa direzione è stata considerata fuori scope per il presente test tecnico, ma rappresenta un’evoluzione naturale qualora il progetto dovesse crescere oltre un MVP
 
 ## Documentatzzione
 La documentazione tecnica dettagliata e in `TECHNICAL_DOC.md`.
