@@ -1,7 +1,7 @@
-# Technical Documentation
-Autore : Flavio Ribeiro
-Versione: 1.0.0
-data dell'ultima modifica: 25/01/2026
+### Technical Documentation
+- Autore : Flavio Ribeiro
+- Versione: 1.0.0
+- data dell'ultima modifica: 25/01/2026
 ---
 
 Questo documento descrive l’architettura del sistema, le scelte tecniche adottate, i trade-off e i miglioramenti possibili.  
