@@ -1,6 +1,3 @@
-# Datapizza RAG MVP
-_Soluzione per il Datapizza AI Engineer Technical Test_
-
 ## Panoramica del progetto
 Il progetto privilegia un baseline funzionale rispetto a un’architettura complessa. Considerando il tempo limitato che avevo, l’obiettivo è fornire una soluzione RAG end-to-end pulita che:
 - costruisca l’indice localmente
